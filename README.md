@@ -1,6 +1,6 @@
 # ProjectPilot 🚀
 
-> **Live URL:** `https://your-app.up.railway.app` *(update after deployment)*  
+> **Live URL:** `https://taskpilot-production-8fad.up.railway.app` *(update after deployment)*  
 > **GitHub:** `https://github.com/your-username/projectpilot`
 
 A full-stack project & task management app with **role-based access control (Admin / Member)**, built with **Node.js + Express + PostgreSQL**.
