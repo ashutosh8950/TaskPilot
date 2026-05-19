@@ -1,4 +1,4 @@
-# ProjectPilot 🚀
+# TaskPilot 🚀
 
 > **Live URL:** `https://taskpilot-production-8fad.up.railway.app` *(update after deployment)*  
 > **GitHub:** `https://github.com/your-username/projectpilot`
