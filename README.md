@@ -2,9 +2,7 @@
 
 A full-stack **Project & Task Management** web app with role-based access control (Admin/Member).
 
-🌐 **Live URL:** [https://taskpilot-ps77.onrender.com]
-📦 **GitHub:** [https://github.com/ashutosh8950/TaskPilot]
-
+🌐 **Live URL:** [https://taskpilot-nvv5.onrender.com]
 ---
 
 ## ✨ Features
