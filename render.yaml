@@ -16,7 +16,9 @@ services:
           name: taskpilot-db
           property: connectionString
       - key: DB_POOL_MAX
-        value: 5
+        value: "5"
+      - key: DB_REJECT_UNAUTHORIZED
+        value: "false"
 
 databases:
   - name: taskpilot-db

@@ -50,6 +50,10 @@ function checkRenderYaml() {
   assert(/startCommand:\s*node server\.js/.test(renderYaml), 'render.yaml must start with node server.js');
   assert(/healthCheckPath:\s*\/api\/health/.test(renderYaml), 'render.yaml must health check /api/health');
   assert(/fromDatabase:[\s\S]*property:\s*connectionString/.test(renderYaml), 'render.yaml must wire DATABASE_URL from Render Postgres');
+  assert(
+    /key:\s*DB_REJECT_UNAUTHORIZED[\s\S]*?value:\s*["']?false["']?/.test(renderYaml),
+    'render.yaml must allow Render internal Postgres certificates'
+  );
   warn(/databases:[\s\S]*plan:\s*free/.test(renderYaml), 'Render free Postgres expires after 30 days; use a paid database for production data');
 }
 
