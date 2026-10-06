@@ -2,7 +2,10 @@
 
 A full-stack **Project & Task Management** web app with role-based access control (Admin/Member).
 
-🌐 **Live URL:** [https://taskpilot-nvv5.onrender.com]
+🌐 **Live demo:** [https://taskpilot-nvv5.onrender.com](https://taskpilot-nvv5.onrender.com) · [https://ashutosh8950.github.io/Portfolio/](https://ashutosh8950.github.io/Portfolio/)
+
+*Free-tier hosting: the first load can take about a minute while the service wakes up.*
+
 ---
 
 ## ✨ Features
@@ -14,7 +17,7 @@ A full-stack **Project & Task Management** web app with role-based access contro
 - 📊 **Dashboard** — Live stats: total projects, tasks, overdue count, progress overview
 - 🗂️ **Kanban Board** — Visual task board per project
 - 👤 **Team Management** — Admin can invite/remove members and assign roles
-- 🔔 **Activity Feed** — Real-time log of all workspace actions
+- 🔔 **Activity Feed** — Log of the latest workspace actions
 - ⚠️ **Overdue Detection** — Highlights tasks past their due date
 
 ---
@@ -41,8 +44,8 @@ A full-stack **Project & Task Management** web app with role-based access contro
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/YOUR_USERNAME/taskpilot.git
-cd taskpilot
+git clone https://github.com/ashutosh8950/TaskPilot.git
+cd TaskPilot
 
 # 2. Install dependencies
 npm install
@@ -68,7 +71,7 @@ Open `http://localhost:3000` in your browser.
 | Member | jane@pilot.com | pass123 |
 | Member | bob@pilot.com | pass123 |
 
-> **Note:** Demo accounts are only seeded when `NODE_ENV` is not `production`.
+> **Note:** These accounts are seeded only in local development (when `NODE_ENV` is not `production`) and do not exist on the live demo. On the live demo, use **Sign up** to create your own account.
 
 ---
 
