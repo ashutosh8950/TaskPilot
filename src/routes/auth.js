@@ -7,8 +7,6 @@ const { config } = require('../config');
 
 const router = express.Router();
 
-const ALLOW_REGISTRATION = String(process.env.ALLOW_REGISTRATION ?? 'true').toLowerCase() !== 'false';
-
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const normalizeEmail = email => String(email || '').trim().toLowerCase();
 
@@ -34,6 +32,8 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ error: 'Password must be a string' });
   if (cleanName.length > 100)
     return res.status(400).json({ error: 'Name must be 100 characters or less' });
+  if (cleanEmail.length > 254)
+    return res.status(400).json({ error: 'Email must be 254 characters or less' });
   if (!EMAIL_REGEX.test(cleanEmail))
     return res.status(400).json({ error: 'Invalid email format' });
   if (password.length > 72)
@@ -41,15 +41,16 @@ router.post('/register', async (req, res) => {
   if (password.length < 6)
     return res.status(400).json({ error: 'Password must be at least 6 characters' });
 
-  const client = await db.pool.connect();
+  let client;
   try {
+    client = await db.pool.connect();
     await client.query('BEGIN');
     await client.query('SELECT pg_advisory_xact_lock($1)', [42]);
 
     const countResult = await client.query('SELECT COUNT(*)::int AS user_count FROM users');
     const userCount = Number(countResult.rows[0].user_count) || 0;
 
-    if (!ALLOW_REGISTRATION && userCount > 0) {
+    if (!config.allowRegistration && userCount > 0) {
       await client.query('ROLLBACK');
       return res.status(403).json({ error: 'Registration is disabled. Please contact your administrator.' });
     }
@@ -72,11 +73,13 @@ router.post('/register', async (req, res) => {
 
     return res.status(201).json({ token: signToken(r.rows[0]), user: mapUser(r.rows[0]) });
   } catch (e) {
-    try { await client.query('ROLLBACK'); } catch (rollbackError) { /* ignore rollback errors */ }
+    if (client) {
+      try { await client.query('ROLLBACK'); } catch (rollbackError) { /* ignore rollback errors */ }
+    }
     console.error(e);
     return res.status(500).json({ error: 'Server error' });
   } finally {
-    client.release();
+    if (client) client.release();
   }
 });
 
@@ -86,6 +89,8 @@ router.post('/login', async (req, res) => {
   const cleanEmail = normalizeEmail(email);
   if (!cleanEmail || !password)
     return res.status(400).json({ error: 'Email and password required' });
+  if (cleanEmail.length > 254)
+    return res.status(400).json({ error: 'Email must be 254 characters or less' });
   if (typeof password !== 'string')
     return res.status(400).json({ error: 'Password must be a string' });
   try {

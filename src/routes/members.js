@@ -40,6 +40,8 @@ router.post('/', adminOnly, async (req, res) => {
     return res.status(400).json({ error: 'Name and email are required' });
   if (cleanName.length > 100)
     return res.status(400).json({ error: 'Name must be 100 characters or less' });
+  if (cleanEmail.length > 254)
+    return res.status(400).json({ error: 'Email must be 254 characters or less' });
   if (!EMAIL_REGEX.test(cleanEmail))
     return res.status(400).json({ error: 'Invalid email format' });
   try {

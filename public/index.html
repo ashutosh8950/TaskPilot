@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
+<meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ProjectPilot â€” Task & Team Management</title>
+<title>TaskPilot - Task & Team Management</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
@@ -49,7 +49,7 @@
   ::-webkit-scrollbar-track { background: var(--surface); }
   ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
 
-  /* â”€â”€â”€ AUTH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ─── AUTH ─────────────────────────────────── */
   #auth-screen {
     min-height: 100vh;
     display: flex;
@@ -219,11 +219,11 @@
   }
   .auth-demo strong { color: var(--text2); }
 
-  /* â”€â”€â”€ APP SHELL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ─── APP SHELL ───────────────────────────── */
   #app-screen { display: none; flex-direction: row; min-height: 100vh; }
   #app-screen.visible { display: flex; }
 
-  /* â”€â”€â”€ SIDEBAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ─── SIDEBAR ─────────────────────────────── */
   .sidebar {
     width: 230px;
     min-width: 230px;
@@ -356,7 +356,7 @@
   .logout-btn:hover { color: var(--red); background: var(--red-bg); }
   .logout-btn svg { width: 15px; height: 15px; }
 
-  /* â”€â”€â”€ MAIN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ─── MAIN ────────────────────────────────── */
   .main-content {
     flex: 1;
     margin-left: 230px;
@@ -383,7 +383,7 @@
   .page.active { display: block; }
   @keyframes fadeIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
 
-  /* â”€â”€â”€ STATS GRID â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ─── STATS GRID ──────────────────────────── */
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -421,7 +421,7 @@
   .stat-red { color: var(--red); }
   .stat-blue { color: var(--blue); }
 
-  /* â”€â”€â”€ CARDS / PANELS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ─── CARDS / PANELS ──────────────────────── */
   .panel {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -444,7 +444,7 @@
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 
-  /* â”€â”€â”€ TASK CARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ─── TASK CARD ───────────────────────────── */
   .task-card {
     background: var(--surface2);
     border: 1px solid var(--border);
@@ -506,7 +506,7 @@
     flex-shrink: 0;
   }
 
-  /* â”€â”€â”€ PROJECTS GRID â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ─── PROJECTS GRID ───────────────────────── */
   .projects-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -579,7 +579,7 @@
     display: flex; gap: 6px; margin-top: 14px;
   }
 
-  /* â”€â”€â”€ TABLE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ─── TABLE ───────────────────────────────── */
   .table-wrap { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; }
   thead tr { border-bottom: 1px solid var(--border); }
@@ -603,7 +603,7 @@
   tr:hover td { background: var(--surface2); }
   .td-actions { display: flex; gap: 5px; justify-content: flex-end; }
 
-  /* â”€â”€â”€ MODAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ─── MODAL ───────────────────────────────── */
   .modal-overlay {
     position: fixed; inset: 0;
     background: rgba(0,0,0,0.7);
@@ -650,7 +650,7 @@
   .modal-close svg { width: 18px; height: 18px; }
   .modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
 
-  /* â”€â”€â”€ EMPTY STATE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ─── EMPTY STATE ─────────────────────────── */
   .empty-state {
     text-align: center;
     padding: 60px 20px;
@@ -674,7 +674,7 @@
   }
   .empty-state p { font-size: 0.82rem; margin-bottom: 20px; }
 
-  /* â”€â”€â”€ TOAST â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ─── TOAST ───────────────────────────────── */
   .toast-container {
     position: fixed; bottom: 20px; right: 20px;
     z-index: 9999;
@@ -700,7 +700,7 @@
   .toast-error .toast-dot { background: var(--red); }
   .toast-info .toast-dot { background: var(--blue); }
 
-  /* â”€â”€â”€ KANBAN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ─── KANBAN ──────────────────────────────── */
   .kanban-board {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -733,7 +733,7 @@
     min-height: 180px;
   }
 
-  /* â”€â”€â”€ ACTIVITY / FEED â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ─── ACTIVITY / FEED ─────────────────────── */
   .activity-item {
     display: flex; gap: 12px;
     padding: 10px 0;
@@ -758,7 +758,7 @@
     margin-top: 2px;
   }
 
-  /* â”€â”€â”€ MEMBER AVATARS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ─── MEMBER AVATARS ──────────────────────── */
   .member-stack {
     display: flex;
   }
@@ -768,7 +768,7 @@
   }
   .member-stack .mini-avatar:first-child { margin-left: 0; }
 
-  /* â”€â”€â”€ SEARCH BAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ─── SEARCH BAR ──────────────────────────── */
   .search-bar {
     display: flex; align-items: center; gap: 8px;
     background: var(--surface2);
@@ -786,7 +786,7 @@
   }
   .search-bar input::placeholder { color: var(--text3); }
 
-  /* â”€â”€â”€ FILTER BAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ─── FILTER BAR ──────────────────────────── */
   .filter-bar {
     display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;
   }
@@ -805,13 +805,13 @@
   .filter-chip:hover { border-color: var(--border2); color: var(--text); }
   .filter-chip.active { background: var(--purple-bg); border-color: rgba(124,106,247,0.3); color: var(--accent); }
 
-  /* â”€â”€â”€ ROLE GUARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ─── ROLE GUARD ──────────────────────────── */
   .admin-only { display: none; }
   body.is-admin .admin-only { display: initial; }
   body.is-admin .admin-only-flex { display: flex; }
   .admin-only-flex { display: none; }
 
-  /* â”€â”€â”€ DIVIDER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ─── DIVIDER ─────────────────────────────── */
   .divider { height: 1px; background: var(--border); margin: 20px 0; }
   .section-title {
     font-family: 'Syne', sans-serif;
@@ -832,7 +832,7 @@
   }
   .page-header p { color: var(--text2); font-size: 0.85rem; }
 
-  /* â”€â”€â”€ INLINE EDIT FIELD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ─── INLINE EDIT FIELD ───────────────────── */
   .inline-status {
     cursor: pointer;
     padding: 2px 8px;
@@ -840,7 +840,7 @@
     display: inline-flex; align-items: center;
   }
 
-  /* â”€â”€â”€ RESPONSIVE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ─── RESPONSIVE ──────────────────────────── */
   @media(max-width: 768px) {
     .sidebar { width: 200px; min-width: 200px; }
     .main-content { margin-left: 200px; }
@@ -851,7 +851,7 @@
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
   }
 
-  /* â”€â”€â”€ DETAIL VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+  /* ─── DETAIL VIEW ─────────────────────────── */
   .detail-header {
     display: flex; align-items: flex-start; gap: 16px;
     margin-bottom: 24px;
@@ -898,7 +898,7 @@
 </head>
 <body>
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â• AUTH SCREEN â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ══════════════ AUTH SCREEN ══════════════ -->
 <div id="auth-screen">
   <div class="auth-card">
     <div class="auth-logo">
@@ -907,7 +907,7 @@
           <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
         </svg>
       </div>
-      <div class="auth-logo-name">Project<span>Pilot</span></div>
+      <div class="auth-logo-name">Task<span>Pilot</span></div>
     </div>
 
     <div id="auth-headline-login">
@@ -916,7 +916,7 @@
     </div>
     <div id="auth-headline-signup" class="hidden">
       <div class="auth-headline">Create account</div>
-      <div class="auth-sub">Join your team on ProjectPilot</div>
+      <div class="auth-sub">Join your team on TaskPilot</div>
     </div>
 
     <div class="auth-tabs">
@@ -964,7 +964,7 @@
   </div>
 </div>
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â• APP SCREEN â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ══════════════ APP SCREEN ══════════════ -->
 <div id="app-screen">
   <!-- SIDEBAR -->
   <aside class="sidebar">
@@ -974,7 +974,7 @@
           <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
         </svg>
       </div>
-      <div class="sidebar-logo-name">Project<span>Pilot</span></div>
+      <div class="sidebar-logo-name">Task<span>Pilot</span></div>
     </div>
 
     <div class="sidebar-section">Main</div>
@@ -1022,7 +1022,7 @@
   <!-- MAIN CONTENT -->
   <main class="main-content">
 
-    <!-- â”€â”€ DASHBOARD â”€â”€ -->
+    <!-- ── DASHBOARD ── -->
     <div id="page-dashboard" class="page active">
       <div class="topbar">
         <div class="topbar-title">Dashboard</div>
@@ -1067,7 +1067,7 @@
       </div>
     </div>
 
-    <!-- â”€â”€ MY TASKS â”€â”€ -->
+    <!-- ── MY TASKS ── -->
     <div id="page-tasks" class="page">
       <div class="topbar">
         <div class="topbar-title">My Tasks</div>
@@ -1092,7 +1092,7 @@
       </div>
     </div>
 
-    <!-- â”€â”€ PROJECTS â”€â”€ -->
+    <!-- ── PROJECTS ── -->
     <div id="page-projects" class="page">
       <div class="topbar">
         <div class="topbar-title">All Projects</div>
@@ -1108,7 +1108,7 @@
       </div>
     </div>
 
-    <!-- â”€â”€ PROJECT DETAIL â”€â”€ -->
+    <!-- ── PROJECT DETAIL ── -->
     <div id="page-project-detail" class="page">
       <div class="topbar">
         <div class="topbar-title" id="detail-project-name">Project</div>
@@ -1132,7 +1132,7 @@
       </div>
     </div>
 
-    <!-- â”€â”€ TEAM â”€â”€ -->
+    <!-- ── TEAM ── -->
     <div id="page-team" class="page">
       <div class="topbar">
         <div class="topbar-title">Team Members</div>
@@ -1160,7 +1160,7 @@
       </div>
     </div>
 
-    <!-- â”€â”€ SETTINGS â”€â”€ -->
+    <!-- ── SETTINGS ── -->
     <div id="page-settings" class="page">
       <div class="topbar"><div class="topbar-title">Settings</div></div>
       <div style="padding:28px;max-width:560px;">
@@ -1189,7 +1189,7 @@
   </main>
 </div>
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â• MODALS â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ══════════════ MODALS ══════════════ -->
 
 <!-- NEW PROJECT -->
 <div class="modal-overlay" id="modal-project">
@@ -1318,7 +1318,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
-    <p style="margin:0 0 10px;color:var(--text2);font-size:0.82rem;">Share the temporary password with the new member. It can be changed after first sign-in.</p>
+    <p style="margin:0 0 10px;color:var(--text2);font-size:0.82rem;">Shown only once. Copy it now and share it securely. Closing this window hides it permanently.</p>
     <div class="field">
       <label>Password</label>
       <div style="display:flex;align-items:center;gap:8px;">
@@ -1350,15 +1350,19 @@
 <div class="toast-container" id="toast-container"></div>
 
 <script>
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 //  UTILITIES
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 
 function escapeHtml(str) {
-  if (!str) return '';
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
+  if (str === null || str === undefined) return '';
+  return String(str).replace(/[&<>"']/g, character => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[character]);
 }
 
 function isValidUuid(value) {
@@ -1369,7 +1373,7 @@ function safeIdAttribute(value) {
   return isValidUuid(value) ? String(value) : '';
 }
 
-function fmtDate(d) { if(!d) return 'â€”'; return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+function fmtDate(d) { if(!d) return '—'; return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
 function isOverdue(due) { if(!due) return false; return new Date(due) < new Date() && new Date(due).toDateString() !== new Date().toDateString(); }
 function initials(name) { if(!name) return '?'; return name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
 const COLORS = ['#7c6af7','#2dd98f','#f5a623','#f05252','#38bdf8','#fb923c','#ec4899','#14b8a6'];
@@ -1384,9 +1388,9 @@ function timeAgo(iso) {
   return Math.floor(diff/86400) + 'd ago';
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 //  API LAYER
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 
 async function apiFetch(url, options = {}) {
   const token = localStorage.getItem('token');
@@ -1403,6 +1407,9 @@ async function apiFetch(url, options = {}) {
       showToast('Session expired. Please log in again.', 'error');
       return null;
     }
+    if (res.status === 503) {
+      showToast('Service temporarily unavailable. Please try again shortly.', 'error');
+    }
     return res;
   } catch(err) {
     showToast('Network error. Please check your connection.', 'error');
@@ -1410,9 +1417,9 @@ async function apiFetch(url, options = {}) {
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 //  STATE
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 
 let currentUser = null;
 let currentPage = 'dashboard';
@@ -1421,9 +1428,9 @@ let taskFilter = 'assigned';
 let cachedMembers = [];
 let cachedProjects = [];
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 //  AUTH UI
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 
 function switchAuthTab(tab) {
   document.getElementById('tab-login').classList.toggle('active', tab==='login');
@@ -1487,9 +1494,9 @@ function doLogout() {
   document.body.classList.remove('is-admin');
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 //  APP INIT
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 
 async function initApp() {
   document.getElementById('auth-screen').style.display = 'none';
@@ -1547,9 +1554,18 @@ document.addEventListener('click', (event) => {
 
     if (action === 'edit-project' && projectId) editProject(projectId);
     if (action === 'delete-project' && projectId) deleteProject(projectId);
+    if (action === 'edit-task' && taskId) editTask(taskId);
+    if (action === 'delete-task' && taskId) deleteTask(taskId);
     if (action === 'view-task' && taskId) openTaskDetail(taskId);
     if (action === 'toggle-role' && userId) toggleRole(userId);
     if (action === 'delete-member' && userId) deleteMember(userId);
+    return;
+  }
+
+  const projectCard = event.target.closest('.project-card[data-project-id]');
+  if (projectCard) {
+    const projectId = projectCard.dataset.projectId;
+    if (projectId) navigateToProject(projectId);
     return;
   }
 
@@ -1567,9 +1583,16 @@ document.addEventListener('click', (event) => {
   }
 });
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+document.addEventListener('change', event => {
+  const statusSelect = event.target.closest('[data-task-status-id]');
+  if (statusSelect && statusSelect.dataset.taskStatusId) {
+    quickUpdateStatus(statusSelect.dataset.taskStatusId, statusSelect.value);
+  }
+});
+
+// ══════════════════════════════════════════════════
 //  NAVIGATION
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 
 async function navigate(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -1608,9 +1631,9 @@ async function updateTaskCount() {
   document.getElementById('my-task-count').textContent = count;
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 //  DASHBOARD
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 
 async function renderDashboard() {
   const [tasksRes, projectsRes, activitiesRes] = await Promise.all([
@@ -1674,7 +1697,7 @@ async function renderDashboard() {
         <div class="progress-bar-wrap">
           <div class="progress-bar-fill" style="width:${pct}%;background:${escapeHtml(p.color)};"></div>
         </div>
-        <div style="font-size:0.72rem;color:var(--text3);margin-top:3px;">${pdone}/${ptasks.length} tasks &nbsp;Â·&nbsp; Due ${fmtDate(p.due_date)}</div>
+        <div style="font-size:0.72rem;color:var(--text3);margin-top:3px;">${pdone}/${ptasks.length} tasks &nbsp;·&nbsp; Due ${fmtDate(p.due_date)}</div>
       </div>
     `;
   }).join('') || '<div class="empty-state"><p>No projects yet</p></div>';
@@ -1709,7 +1732,7 @@ async function renderDashboard() {
             return `<tr style="cursor:pointer;" data-task-id="${safeIdAttribute(t.id)}" data-action="view-task">
               <td><span style="font-weight:500;">${escapeHtml(t.title)}</span></td>
               <td><span style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:${p?escapeHtml(p.color):'#666'};display:inline-block;"></span>${p?escapeHtml(p.name):'—'}</span></td>
-              <td>${u ? `<span style="display:flex;align-items:center;gap:5px;"><span class="mini-avatar" style="background:${avatarColor(u.name)}">${initials(u.name)}</span>${escapeHtml(u.name)}</span>` : '—'}</td>
+              <td>${u ? `<span style="display:flex;align-items:center;gap:5px;"><span class="mini-avatar" style="background:${avatarColor(u.name)}">${escapeHtml(initials(u.name))}</span>${escapeHtml(u.name)}</span>` : '—'}</td>
               <td><span class="badge badge-overdue">${fmtDate(t.due_date)}</span></td>
               <td><span class="badge badge-${t.priority}">${escapeHtml(t.priority)}</span></td>
             </tr>`;
@@ -1720,9 +1743,9 @@ async function renderDashboard() {
   ` : '<div class="empty-state" style="padding:28px;"><p style="color:var(--green);font-size:0.85rem;">No overdue tasks. Great work!</p></div>';
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 //  TASKS PAGE
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 
 function setTaskFilter(f, el) {
   taskFilter = f;
@@ -1788,9 +1811,9 @@ function renderTaskCard(t) {
   `;
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 //  PROJECTS PAGE
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 
 async function renderProjectsPage() {
   const [projRes, taskRes] = await Promise.all([apiFetch('/api/projects'), apiFetch('/api/tasks')]);
@@ -1821,7 +1844,7 @@ async function renderProjectsPage() {
       <div class="project-card" data-project-id="${safeIdAttribute(p.id)}">
         <div class="project-card-header" style="background:${escapeHtml(p.color)}20;border-left:4px solid ${escapeHtml(p.color)};">
           <div class="project-card-title">${escapeHtml(p.name)}</div>
-          ${currentUser.role==='admin'?`<div class="project-card-actions" onclick="event.stopPropagation()">
+          ${currentUser.role==='admin'?`<div class="project-card-actions">
             <button class="btn-icon" data-action="edit-project" data-project-id="${safeIdAttribute(p.id)}" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
             <button class="btn-icon btn-danger-icon" data-action="delete-project" data-project-id="${safeIdAttribute(p.id)}" title="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>
           </div>`:''}
@@ -1832,7 +1855,7 @@ async function renderProjectsPage() {
             <div class="progress-bar-fill" style="width:${pct}%;background:${escapeHtml(p.color)};"></div>
           </div>
           <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--text3);">
-            <span>${pdone}/${ptasks.length} tasks Â· ${pct}%</span>
+            <span>${pdone}/${ptasks.length} tasks · ${pct}%</span>
             <span>Due ${fmtDate(p.due_date)}</span>
           </div>
         </div>
@@ -1841,9 +1864,9 @@ async function renderProjectsPage() {
   }).join('');
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 //  PROJECT DETAIL
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 
 async function renderProjectDetail(id) {
   const [projRes, taskRes] = await Promise.all([
@@ -1895,9 +1918,9 @@ function renderKanbanCol(label, tasks, color) {
   `;
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 //  TEAM PAGE
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 
 async function renderTeamPage() {
   await fetchMembers();
@@ -1910,7 +1933,7 @@ async function renderTeamPage() {
   document.getElementById('team-list').innerHTML = cachedMembers.map(u => `
     <div class="team-member-item" style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
       <div style="display:flex;align-items:center;gap:10px;">
-        <div class="mini-avatar" style="background:${avatarColor(u.name)};width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:0.7rem;font-weight:600;">${initials(u.name)}</div>
+        <div class="mini-avatar" style="background:${avatarColor(u.name)};width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:0.7rem;font-weight:600;">${escapeHtml(initials(u.name))}</div>
         <div>
           <div style="font-size:0.85rem;font-weight:500;">${escapeHtml(u.name)}</div>
           <div style="font-size:0.73rem;color:var(--text3);">${escapeHtml(u.email)}</div>
@@ -1945,9 +1968,9 @@ async function renderTeamPage() {
   }).join('') || '<p style="color:var(--text3);">No members</p>';
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 //  MODALS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 
 function openModal(id) {
   document.getElementById(id).classList.add('open');
@@ -1965,6 +1988,7 @@ function openModal(id) {
 
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
+  if (id === 'modal-temp-password') document.getElementById('temp-password-value').value = '';
   // Reset form IDs
   if (id === 'modal-project') document.getElementById('project-edit-id').value = '';
   if (id === 'modal-task') document.getElementById('task-edit-id').value = '';
@@ -1973,13 +1997,13 @@ function closeModal(id) {
 function populateTaskModal() {
   // Populate project dropdown
   const projSelect = document.getElementById('task-project-select');
-  projSelect.innerHTML = cachedProjects.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+  projSelect.innerHTML = cachedProjects.map(p => `<option value="${safeIdAttribute(p.id)}">${escapeHtml(p.name)}</option>`).join('');
   if (currentProjectId) projSelect.value = currentProjectId;
 
   // Populate assignee dropdown
   const assignSelect = document.getElementById('task-assignee-select');
   assignSelect.innerHTML = '<option value="">Unassigned</option>' +
-    cachedMembers.map(u => `<option value="${u.id}">${escapeHtml(u.name)}</option>`).join('');
+    cachedMembers.map(u => `<option value="${safeIdAttribute(u.id)}">${escapeHtml(u.name)}</option>`).join('');
 
   if (!document.getElementById('task-edit-id').value) {
     document.getElementById('task-modal-title').textContent = 'New Task';
@@ -1997,9 +2021,9 @@ function openTaskModalForProject() {
   document.getElementById('task-project-select').value = currentProjectId;
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-//  CRUD â€” PROJECTS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
+//  CRUD — PROJECTS
+// ══════════════════════════════════════════════════
 
 async function saveProject() {
   const id = document.getElementById('project-edit-id').value;
@@ -2052,9 +2076,9 @@ async function deleteProject(id) {
   else if (currentPage === 'dashboard') await renderDashboard();
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-//  CRUD â€” TASKS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
+//  CRUD — TASKS
+// ══════════════════════════════════════════════════
 
 async function saveTask() {
   const id = document.getElementById('task-edit-id').value;
@@ -2097,7 +2121,7 @@ async function openTaskDetail(taskId) {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:0.82rem;">
         <div><span style="color:var(--text3);">Status</span>
           <div style="margin-top:4px;">
-            <select onchange="quickUpdateStatus('${t.id}', this.value)" style="padding:6px 10px;border-radius:8px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:0.8rem;" ${!canEdit?'disabled':''}>
+            <select data-task-status-id="${safeIdAttribute(t.id)}" style="padding:6px 10px;border-radius:8px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:0.8rem;" ${!canEdit?'disabled':''}>
               <option value="todo" ${t.status==='todo'?'selected':''}>To Do</option>
               <option value="inprogress" ${t.status==='inprogress'?'selected':''}>In Progress</option>
               <option value="done" ${t.status==='done'?'selected':''}>Done</option>
@@ -2105,15 +2129,15 @@ async function openTaskDetail(taskId) {
           </div>
         </div>
         <div><span style="color:var(--text3);">Priority</span><div style="margin-top:4px;"><span class="badge badge-${t.priority}">${escapeHtml(t.priority)}</span></div></div>
-        <div><span style="color:var(--text3);">Project</span><div style="margin-top:4px;">${p ? escapeHtml(p.name) : 'â€”'}</div></div>
+        <div><span style="color:var(--text3);">Project</span><div style="margin-top:4px;">${p ? escapeHtml(p.name) : '—'}</div></div>
         <div><span style="color:var(--text3);">Assignee</span><div style="margin-top:4px;">${assignee ? escapeHtml(assignee.name) : 'Unassigned'}</div></div>
         <div><span style="color:var(--text3);">Due Date</span><div style="margin-top:4px;${od?'color:var(--red);':''}">${fmtDate(t.due_date)}${od?' (overdue)':''}</div></div>
       </div>
     </div>
   `;
   document.getElementById('task-detail-footer').innerHTML = canEdit ? `
-    <button class="btn btn-ghost" onclick="editTask('${t.id}')">Edit</button>
-    <button class="btn btn-danger btn-sm" onclick="deleteTask('${t.id}')">Delete</button>
+    <button class="btn btn-ghost" data-action="edit-task" data-task-id="${safeIdAttribute(t.id)}">Edit</button>
+    <button class="btn btn-danger btn-sm" data-action="delete-task" data-task-id="${safeIdAttribute(t.id)}">Delete</button>
   ` : '';
   openModal('modal-task-detail');
 }
@@ -2161,9 +2185,9 @@ async function quickUpdateStatus(taskId, newStatus) {
   await updateTaskCount();
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-//  CRUD â€” MEMBERS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
+//  CRUD — MEMBERS
+// ══════════════════════════════════════════════════
 
 async function inviteMember() {
   const name = document.getElementById('invite-name').value.trim();
@@ -2223,9 +2247,9 @@ async function deleteMember(userId) {
   if (currentPage === 'team') await renderTeamPage();
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 //  SETTINGS
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 
 function saveSettings() { showToast('Settings saved', 'success'); }
 
@@ -2233,9 +2257,9 @@ function resetAllData() {
   showToast('Reset is not available in production mode', 'error');
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 //  TOAST
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 
 function showToast(msg, type='info') {
   const container = document.getElementById('toast-container');
@@ -2266,9 +2290,9 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 //  BOOT
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ══════════════════════════════════════════════════
 
 (async function() {
   const token = localStorage.getItem('token');
@@ -2278,11 +2302,9 @@ document.addEventListener('keydown', e => {
       if (res && res.ok) {
         currentUser = await res.json();
         await initApp();
-      } else {
-        localStorage.removeItem('token');
       }
     } catch(e) {
-      localStorage.removeItem('token');
+      showToast('Unable to restore your session. Please try again.', 'error');
     }
   }
 })();

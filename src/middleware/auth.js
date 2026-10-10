@@ -23,9 +23,13 @@ module.exports = async (req, res, next) => {
     req.user = rows[0];
     return next();
   } catch (err) {
-    if (err.name === 'TokenExpiredError') {
-      return res.status(401).json({ error: 'Token expired' });
+    if (['TokenExpiredError', 'JsonWebTokenError', 'NotBeforeError'].includes(err.name)) {
+      if (err.name === 'TokenExpiredError') {
+        return res.status(401).json({ error: 'Token expired' });
+      }
+      return res.status(401).json({ error: 'Invalid token' });
     }
-    return res.status(401).json({ error: 'Invalid token' });
+    console.error(err);
+    return res.status(503).json({ error: 'Service temporarily unavailable' });
   }
 };
