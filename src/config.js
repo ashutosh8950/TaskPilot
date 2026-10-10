@@ -21,6 +21,11 @@ function parsePositiveInt(name, fallback) {
 function validateConfig() {
   const errors = [];
 
+  const allowRegistration = String(process.env.ALLOW_REGISTRATION ?? 'true').toLowerCase();
+  if (!['true', 'false'].includes(allowRegistration)) {
+    errors.push('ALLOW_REGISTRATION must be either true or false');
+  }
+
   if (!process.env.DATABASE_URL) {
     errors.push('DATABASE_URL is required');
   }
@@ -52,6 +57,7 @@ module.exports = {
     port: parsePositiveInt('PORT', 3000),
     databaseUrl: process.env.DATABASE_URL,
     jwtSecret: process.env.JWT_SECRET,
+    allowRegistration: String(process.env.ALLOW_REGISTRATION ?? 'true').toLowerCase() === 'true',
     dbPoolMax: parsePositiveInt('DB_POOL_MAX', 5),
     dbRejectUnauthorized: process.env.DB_REJECT_UNAUTHORIZED !== 'false',
     corsOrigins

@@ -35,17 +35,22 @@ router.post('/', adminOnly, async (req, res) => {
   const { name, email, password, role } = req.body;
   const cleanName = String(name || '').trim();
   const cleanEmail = normalizeEmail(email);
+  const providedPassword = typeof password === 'string' ? password.trim() : '';
   if (!cleanName || !cleanEmail)
     return res.status(400).json({ error: 'Name and email are required' });
+  if (cleanName.length > 100)
+    return res.status(400).json({ error: 'Name must be 100 characters or less' });
   if (!EMAIL_REGEX.test(cleanEmail))
     return res.status(400).json({ error: 'Invalid email format' });
   try {
     const exists = await db.query('SELECT id FROM users WHERE email=$1', [cleanEmail]);
     if (exists.rows.length) return res.status(409).json({ error: 'Email already registered' });
-    // Use provided password or generate a secure random one
-    const pwd = password || crypto.randomBytes(12).toString('hex');
+
+    const generatedPassword = !providedPassword ? crypto.randomBytes(10).toString('hex') : null;
+    const pwd = providedPassword || generatedPassword;
     if (typeof pwd !== 'string') return res.status(400).json({ error: 'Password must be a string' });
     if (pwd.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    if (pwd.length > 72) return res.status(400).json({ error: 'Password must be 72 characters or less' });
     const hash = await bcrypt.hash(pwd, 10);
     const validRole = ['admin', 'member'].includes(role) ? role : 'member';
     const r = await db.query(
@@ -54,7 +59,10 @@ router.post('/', adminOnly, async (req, res) => {
     );
     await db.query(`INSERT INTO activities (text) VALUES ($1)`,
       [`${req.user.name} added ${cleanName} to the team`]);
-    res.status(201).json(mapUser(r.rows[0]));
+
+    const response = mapUser(r.rows[0]);
+    if (generatedPassword) response.temporaryPassword = generatedPassword;
+    return res.status(201).json(response);
   } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
 });
 

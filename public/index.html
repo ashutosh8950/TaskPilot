@@ -1084,11 +1084,9 @@
       </div>
       <div style="padding:28px;">
         <div class="filter-bar" id="task-filters">
-          <span class="filter-chip active" onclick="setTaskFilter('all', this)">All</span>
-          <span class="filter-chip" onclick="setTaskFilter('todo', this)">To Do</span>
-          <span class="filter-chip" onclick="setTaskFilter('inprogress', this)">In Progress</span>
-          <span class="filter-chip" onclick="setTaskFilter('done', this)">Done</span>
-          <span class="filter-chip" onclick="setTaskFilter('overdue', this)">Overdue</span>
+          <span class="filter-chip active" onclick="setTaskFilter('assigned', this)">Assigned to me</span>
+          <span class="filter-chip" onclick="setTaskFilter('created', this)">Created by me</span>
+          <span class="filter-chip" onclick="setTaskFilter('all', this)">All tasks</span>
         </div>
         <div id="tasks-kanban" class="kanban-board"></div>
       </div>
@@ -1173,7 +1171,7 @@
         <div class="panel" style="margin-bottom:16px;">
           <div class="panel-header"><div class="panel-title">Workspace Info</div></div>
           <div class="panel-body">
-            <div class="field"><label>Workspace Name</label><input type="text" id="ws-name" value="ProjectPilot Workspace" /></div>
+            <div class="field"><label>Workspace Name</label><input type="text" id="ws-name" value="TaskPilot Workspace" /></div>
             <div class="field"><label>Description</label><textarea id="ws-desc" placeholder="Describe your workspace...">A collaborative project management workspace.</textarea></div>
             <button class="btn btn-primary btn-sm" onclick="saveSettings()">Save Changes</button>
           </div>
@@ -1290,7 +1288,7 @@
       </button>
     </div>
     <div class="field"><label>Full Name *</label><input type="text" id="invite-name" placeholder="Team member name" /></div>
-    <div class="field"><label>Email *</label><input type="email" id="invite-email" placeholder="member@company.com" /></div>
+    <div class="field"><label>Email *</label><input type="email" id="invite-email" maxlength="254" placeholder="member@company.com" /></div>
     <div class="field-row">
       <div class="field">
         <label>Role</label>
@@ -1301,12 +1299,35 @@
       </div>
       <div class="field">
         <label>Password</label>
-        <input type="password" id="invite-password" placeholder="Temp password" />
+        <input type="password" id="invite-password" maxlength="72" placeholder="Temp password" />
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-invite')">Cancel</button>
       <button class="btn btn-primary" onclick="inviteMember()">Add Member</button>
+    </div>
+  </div>
+</div>
+
+<!-- TEMPORARY PASSWORD -->
+<div class="modal-overlay" id="modal-temp-password">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">Temporary Password</div>
+      <button class="modal-close" onclick="closeModal('modal-temp-password')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <p style="margin:0 0 10px;color:var(--text2);font-size:0.82rem;">Share the temporary password with the new member. It can be changed after first sign-in.</p>
+    <div class="field">
+      <label>Password</label>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input type="text" id="temp-password-value" readonly style="flex:1;" />
+        <button class="btn btn-secondary btn-sm" onclick="copyTemporaryPassword()">Copy</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="closeModal('modal-temp-password')">Done</button>
     </div>
   </div>
 </div>
@@ -1338,6 +1359,14 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+function isValidUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''));
+}
+
+function safeIdAttribute(value) {
+  return isValidUuid(value) ? String(value) : '';
 }
 
 function fmtDate(d) { if(!d) return 'â€”'; return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
@@ -1388,7 +1417,7 @@ async function apiFetch(url, options = {}) {
 let currentUser = null;
 let currentPage = 'dashboard';
 let currentProjectId = null;
-let taskFilter = 'all';
+let taskFilter = 'assigned';
 let cachedMembers = [];
 let cachedProjects = [];
 
@@ -1501,12 +1530,42 @@ async function refreshSidebarProjects() {
   cachedProjects = await res.json();
   const el = document.getElementById('sidebar-projects');
   el.innerHTML = cachedProjects.map(p => `
-    <div class="project-nav-item ${currentProjectId===p.id?'active':''}" onclick="navigateToProject('${p.id}')">
+    <div class="project-nav-item ${currentProjectId===p.id?'active':''}" data-project-id="${safeIdAttribute(p.id)}">
       <div class="project-dot" style="background:${escapeHtml(p.color)}"></div>
       <div class="project-nav-name">${escapeHtml(p.name)}</div>
     </div>
   `).join('') || '<div style="padding:6px 14px;font-size:0.75rem;color:var(--text3);">No projects yet</div>';
 }
+
+document.addEventListener('click', (event) => {
+  const actionTarget = event.target.closest('[data-action]');
+  if (actionTarget) {
+    const action = actionTarget.dataset.action;
+    const projectId = actionTarget.dataset.projectId;
+    const taskId = actionTarget.dataset.taskId;
+    const userId = actionTarget.dataset.userId;
+
+    if (action === 'edit-project' && projectId) editProject(projectId);
+    if (action === 'delete-project' && projectId) deleteProject(projectId);
+    if (action === 'view-task' && taskId) openTaskDetail(taskId);
+    if (action === 'toggle-role' && userId) toggleRole(userId);
+    if (action === 'delete-member' && userId) deleteMember(userId);
+    return;
+  }
+
+  const projectNav = event.target.closest('[data-project-id].project-nav-item');
+  if (projectNav) {
+    const projectId = projectNav.dataset.projectId;
+    if (projectId) navigateToProject(projectId);
+    return;
+  }
+
+  const taskCard = event.target.closest('[data-task-id].task-card');
+  if (taskCard) {
+    const taskId = taskCard.dataset.taskId;
+    if (taskId) openTaskDetail(taskId);
+  }
+});
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 //  NAVIGATION
@@ -1647,10 +1706,10 @@ async function renderDashboard() {
           ${overdue.map(t => {
             const p = projects.find(p=>p.id===t.project_id);
             const u = cachedMembers.find(u=>u.id===t.assignee_id);
-            return `<tr style="cursor:pointer;" onclick="openTaskDetail('${t.id}')">
+            return `<tr style="cursor:pointer;" data-task-id="${safeIdAttribute(t.id)}" data-action="view-task">
               <td><span style="font-weight:500;">${escapeHtml(t.title)}</span></td>
-              <td><span style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:${p?escapeHtml(p.color):'#666'};display:inline-block;"></span>${p?escapeHtml(p.name):'â€”'}</span></td>
-              <td>${u ? `<span style="display:flex;align-items:center;gap:5px;"><span class="mini-avatar" style="background:${avatarColor(u.name)}">${initials(u.name)}</span>${escapeHtml(u.name)}</span>` : 'â€”'}</td>
+              <td><span style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:${p?escapeHtml(p.color):'#666'};display:inline-block;"></span>${p?escapeHtml(p.name):'—'}</span></td>
+              <td>${u ? `<span style="display:flex;align-items:center;gap:5px;"><span class="mini-avatar" style="background:${avatarColor(u.name)}">${initials(u.name)}</span>${escapeHtml(u.name)}</span>` : '—'}</td>
               <td><span class="badge badge-overdue">${fmtDate(t.due_date)}</span></td>
               <td><span class="badge badge-${t.priority}">${escapeHtml(t.priority)}</span></td>
             </tr>`;
@@ -1676,29 +1735,29 @@ async function renderTasksPage() {
   const res = await apiFetch('/api/tasks');
   if (!res) return;
   let tasks = await res.json();
-  // Filter to current user's tasks
-  tasks = tasks.filter(t => t.assignee_id === currentUser.id);
+
+  if (taskFilter === 'assigned') {
+    tasks = tasks.filter(t => t.assignee_id === currentUser.id);
+  } else if (taskFilter === 'created') {
+    tasks = tasks.filter(t => t.created_by === currentUser.id);
+  }
 
   const search = document.getElementById('task-search').value.toLowerCase();
   if(search) tasks = tasks.filter(t => t.title.toLowerCase().includes(search) || (t.description||'').toLowerCase().includes(search));
 
-  const todo     = tasks.filter(t => t.status==='todo'       && (taskFilter==='all'||taskFilter==='todo')       && !(isOverdue(t.due_date)));
-  const inprog   = tasks.filter(t => t.status==='inprogress' && (taskFilter==='all'||taskFilter==='inprogress') && !(isOverdue(t.due_date)));
-  const done     = tasks.filter(t => t.status==='done'       && (taskFilter==='all'||taskFilter==='done'));
-  const overdue  = tasks.filter(t => isOverdue(t.due_date) && t.status!=='done' && (taskFilter==='all'||taskFilter==='overdue'));
+  const todo     = tasks.filter(t => t.status==='todo' && !(isOverdue(t.due_date)));
+  const inprog   = tasks.filter(t => t.status==='inprogress' && !(isOverdue(t.due_date)));
+  const done     = tasks.filter(t => t.status==='done');
+  const overdue  = tasks.filter(t => isOverdue(t.due_date) && t.status!=='done');
 
   const cols = taskFilter === 'all' ? [
     { label:'To Do',       tasks: [...overdue, ...todo], color:'var(--text2)' },
     { label:'In Progress', tasks: inprog,                color:'var(--blue)' },
     { label:'Done',        tasks: done,                  color:'var(--green)' }
-  ] : taskFilter==='overdue' ? [
-    { label:'Overdue', tasks: overdue, color:'var(--red)' }
-  ] : taskFilter==='todo' ? [
-    { label:'To Do', tasks: [...overdue, ...todo], color:'var(--text2)' }
-  ] : taskFilter==='inprogress' ? [
-    { label:'In Progress', tasks: inprog, color:'var(--blue)' }
   ] : [
-    { label:'Done', tasks: done, color:'var(--green)' }
+    { label:'To Do',       tasks: [...overdue, ...todo], color:'var(--text2)' },
+    { label:'In Progress', tasks: inprog,                color:'var(--blue)' },
+    { label:'Done',        tasks: done,                  color:'var(--green)' }
   ];
 
   document.getElementById('tasks-kanban').innerHTML = cols.map(col => `
@@ -1716,7 +1775,7 @@ function renderTaskCard(t) {
   const p = cachedProjects.find(p=>p.id===t.project_id);
   const od = isOverdue(t.due_date) && t.status !== 'done';
   return `
-    <div class="task-card" onclick="openTaskDetail('${t.id}')">
+    <div class="task-card" data-task-id="${safeIdAttribute(t.id)}" data-action="view-task">
       <div class="task-card-top">
         <div class="task-title">${escapeHtml(t.title)}</div>
         <span class="badge badge-${t.priority}">${escapeHtml(t.priority)}</span>
@@ -1759,12 +1818,12 @@ async function renderProjectsPage() {
     const pct    = ptasks.length > 0 ? Math.round(pdone/ptasks.length*100) : 0;
     const creator = cachedMembers.find(u=>u.id===p.created_by);
     return `
-      <div class="project-card" onclick="navigateToProject('${p.id}')">
+      <div class="project-card" data-project-id="${safeIdAttribute(p.id)}">
         <div class="project-card-header" style="background:${escapeHtml(p.color)}20;border-left:4px solid ${escapeHtml(p.color)};">
           <div class="project-card-title">${escapeHtml(p.name)}</div>
           ${currentUser.role==='admin'?`<div class="project-card-actions" onclick="event.stopPropagation()">
-            <button class="btn-icon" onclick="editProject('${p.id}')" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-            <button class="btn-icon btn-danger-icon" onclick="deleteProject('${p.id}')" title="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>
+            <button class="btn-icon" data-action="edit-project" data-project-id="${safeIdAttribute(p.id)}" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+            <button class="btn-icon btn-danger-icon" data-action="delete-project" data-project-id="${safeIdAttribute(p.id)}" title="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>
           </div>`:''}
         </div>
         <div class="project-card-body">
@@ -1860,8 +1919,8 @@ async function renderTeamPage() {
       <div style="display:flex;align-items:center;gap:8px;">
         <span class="badge badge-${u.role==='admin'?'high':'medium'}" style="font-size:0.7rem;">${escapeHtml(u.role)}</span>
         ${currentUser.role==='admin' && u.id !== currentUser.id ? `
-          <button class="btn-icon" onclick="toggleRole('${u.id}')" title="Toggle role"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></button>
-          <button class="btn-icon btn-danger-icon" onclick="deleteMember('${u.id}')" title="Remove"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>
+          <button class="btn-icon" data-action="toggle-role" data-user-id="${safeIdAttribute(u.id)}" title="Toggle role"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></button>
+          <button class="btn-icon btn-danger-icon" data-action="delete-member" data-user-id="${safeIdAttribute(u.id)}" title="Remove"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>
         ` : ''}
       </div>
     </div>
@@ -2110,20 +2169,36 @@ async function inviteMember() {
   const name = document.getElementById('invite-name').value.trim();
   const email = document.getElementById('invite-email').value.trim();
   const role = document.getElementById('invite-role').value;
-  const password = document.getElementById('invite-password').value || ('Temp' + Math.random().toString(36).slice(2,10));
+  const password = document.getElementById('invite-password').value;
   if (!name || !email) { showToast('Name and email are required', 'error'); return; }
   try {
     const res = await apiFetch('/api/members', { method: 'POST', body: JSON.stringify({ name, email, password, role }) });
     if (!res) return;
     if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
+    const data = await res.json();
     closeModal('modal-invite');
     document.getElementById('invite-name').value = '';
     document.getElementById('invite-email').value = '';
     document.getElementById('invite-password').value = '';
-    showToast('Member added!', 'success');
+    if (data.temporaryPassword) {
+      document.getElementById('temp-password-value').value = data.temporaryPassword;
+      openModal('modal-temp-password');
+    } else {
+      showToast('Member added!', 'success');
+    }
     await fetchMembers();
     if (currentPage === 'team') await renderTeamPage();
   } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function copyTemporaryPassword() {
+  const value = document.getElementById('temp-password-value').value.trim();
+  try {
+    await navigator.clipboard.writeText(value);
+    showToast('Temporary password copied to clipboard.', 'success');
+  } catch (error) {
+    showToast('Temporary password ready to copy manually.', 'info');
+  }
 }
 
 async function toggleRole(userId) {

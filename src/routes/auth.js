@@ -7,6 +7,8 @@ const { config } = require('../config');
 
 const router = express.Router();
 
+const ALLOW_REGISTRATION = String(process.env.ALLOW_REGISTRATION ?? 'true').toLowerCase() !== 'false';
+
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const normalizeEmail = email => String(email || '').trim().toLowerCase();
 
@@ -34,26 +36,48 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ error: 'Name must be 100 characters or less' });
   if (!EMAIL_REGEX.test(cleanEmail))
     return res.status(400).json({ error: 'Invalid email format' });
-  if (password.length < 6)
-    return res.status(400).json({ error: 'Password must be at least 6 characters' });
   if (password.length > 72)
     return res.status(400).json({ error: 'Password must be 72 characters or less' });
+  if (password.length < 6)
+    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+
+  const client = await db.pool.connect();
   try {
-    const exists = await db.query('SELECT id FROM users WHERE email=$1', [cleanEmail]);
-    if (exists.rows.length) return res.status(409).json({ error: 'Email already registered' });
+    await client.query('BEGIN');
+    await client.query('SELECT pg_advisory_xact_lock($1)', [42]);
+
+    const countResult = await client.query('SELECT COUNT(*)::int AS user_count FROM users');
+    const userCount = Number(countResult.rows[0].user_count) || 0;
+
+    if (!ALLOW_REGISTRATION && userCount > 0) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'Registration is disabled. Please contact your administrator.' });
+    }
+
+    const exists = await client.query('SELECT id FROM users WHERE email=$1', [cleanEmail]);
+    if (exists.rows.length) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Email already registered' });
+    }
+
     const hash = await bcrypt.hash(password, 10);
+    const role = userCount === 0 ? 'admin' : 'member';
 
-    // First user becomes admin, all others become member
-    const { rows: countRows } = await db.query('SELECT COUNT(*) FROM users');
-    const role = parseInt(countRows[0].count) === 0 ? 'admin' : 'member';
-
-    const r = await db.query(
+    const r = await client.query(
       `INSERT INTO users (name,email,password_hash,role) VALUES ($1,$2,$3,$4) RETURNING *`,
       [cleanName, cleanEmail, hash, role]
     );
-    await db.query(`INSERT INTO activities (text) VALUES ($1)`, [`${cleanName} joined the workspace`]);
-    res.status(201).json({ token: signToken(r.rows[0]), user: mapUser(r.rows[0]) });
-  } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
+    await client.query(`INSERT INTO activities (text) VALUES ($1)`, [`${cleanName} joined the workspace`]);
+    await client.query('COMMIT');
+
+    return res.status(201).json({ token: signToken(r.rows[0]), user: mapUser(r.rows[0]) });
+  } catch (e) {
+    try { await client.query('ROLLBACK'); } catch (rollbackError) { /* ignore rollback errors */ }
+    console.error(e);
+    return res.status(500).json({ error: 'Server error' });
+  } finally {
+    client.release();
+  }
 });
 
 // POST /api/auth/login

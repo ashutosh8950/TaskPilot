@@ -158,4 +158,4 @@ async function initDB() {
   console.log('Database ready');
 }
 
-module.exports = { query: (t,p) => pool.query(t,p), initDB };
+module.exports = { pool, query: (t,p) => pool.query(t,p), initDB };

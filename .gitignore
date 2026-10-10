@@ -1,6 +1,8 @@
 node_modules/
 .env
 *.log
+PROJECT_MASTER_DOCUMENTATION.md
+multi-document-validator/
 .DS_Store
 Thumbs.db
 .vscode/

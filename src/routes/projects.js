@@ -50,15 +50,17 @@ router.get('/:id', async (req, res) => {
 router.post('/', adminOnly, async (req, res) => {
   const { name, description, color, due } = req.body;
   const cleanName = typeof name === 'string' ? name.trim() : '';
+  const cleanDescription = typeof description === 'string' ? description.trim() : '';
   const cleanDue = normalizeDate(due);
   if (!cleanName) return res.status(400).json({ error: 'Project name is required' });
   if (cleanName.length > 200) return res.status(400).json({ error: 'Project name must be 200 characters or less' });
+  if (cleanDescription.length > 5000) return res.status(400).json({ error: 'Project description must be 5000 characters or less' });
   if (cleanDue === undefined) return res.status(400).json({ error: 'Due date must use YYYY-MM-DD format' });
   try {
     const r = await db.query(
       `INSERT INTO projects (name,description,color,due_date,created_by)
        VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-      [cleanName, description||null, COLOR_REGEX.test(color || '') ? color : '#7c6af7', cleanDue, req.user.id]
+      [cleanName, cleanDescription || null, COLOR_REGEX.test(color || '') ? color : '#7c6af7', cleanDue, req.user.id]
     );
     await db.query(`INSERT INTO activities (text) VALUES ($1)`,
       [`${req.user.name} created project ${cleanName}`]);
@@ -70,15 +72,17 @@ router.post('/', adminOnly, async (req, res) => {
 router.put('/:id', adminOnly, async (req, res) => {
   const { name, description, color, due } = req.body;
   const cleanName = typeof name === 'string' ? name.trim() : '';
+  const cleanDescription = typeof description === 'string' ? description.trim() : '';
   const cleanDue = normalizeDate(due);
   if (!cleanName) return res.status(400).json({ error: 'Project name is required' });
   if (cleanName.length > 200) return res.status(400).json({ error: 'Project name must be 200 characters or less' });
+  if (cleanDescription.length > 5000) return res.status(400).json({ error: 'Project description must be 5000 characters or less' });
   if (cleanDue === undefined) return res.status(400).json({ error: 'Due date must use YYYY-MM-DD format' });
   try {
     const r = await db.query(
       `UPDATE projects SET name=$1,description=$2,color=$3,due_date=$4
        WHERE id=$5 RETURNING *`,
-      [cleanName, description||null, COLOR_REGEX.test(color || '') ? color : '#7c6af7', cleanDue, req.params.id]
+      [cleanName, cleanDescription || null, COLOR_REGEX.test(color || '') ? color : '#7c6af7', cleanDue, req.params.id]
     );
     if (!r.rows.length) return res.status(404).json({ error: 'Not found' });
     await db.query(`INSERT INTO activities (text) VALUES ($1)`,

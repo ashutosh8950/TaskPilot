@@ -36,7 +36,7 @@ A full-stack **Project & Task Management** web app with role-based access contro
 ## 🚀 Run Locally
 
 ### Prerequisites
-- Node.js 18+
+- Node.js 20+
 - PostgreSQL (or use Render's managed PostgreSQL)
 
 ### Setup
@@ -51,7 +51,7 @@ npm install
 
 # 3. Set up environment variables
 cp .env.example .env
-# Edit .env with your DATABASE_URL and JWT_SECRET
+# Edit .env with your DATABASE_URL, JWT_SECRET, and ALLOW_REGISTRATION flag
 
 # 4. Start the server
 npm run dev        # development (with nodemon)
@@ -71,6 +71,10 @@ Open `http://localhost:3000` in your browser.
 | Member | bob@pilot.com | pass123 |
 
 > **Note:** Demo accounts are only seeded when `NODE_ENV` is not `production`.
+
+### Registration toggle
+
+Set `ALLOW_REGISTRATION=false` to disable public self-service signup while keeping the first user bootstrap available when no users exist.
 
 ---
 

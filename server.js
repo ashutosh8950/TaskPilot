@@ -16,7 +16,9 @@ const { initDB }     = require('./src/db');
 
 const app = express();
 app.disable('x-powered-by');
-app.set('trust proxy', 1);
+if (!app.get('trust proxy')) {
+  app.set('trust proxy', 1);
+}
 
 // Security headers (CSP disabled for inline scripts in SPA)
 app.use(helmet({ contentSecurityPolicy: false }));
@@ -53,7 +55,15 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Too many requests, please try again later' }
 });
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later' }
+});
 app.use('/api/auth', authLimiter);
+app.use('/api', apiLimiter);
 
 app.use(express.static(path.join(__dirname, 'public')));
 

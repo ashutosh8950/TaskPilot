@@ -66,10 +66,12 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   const { title, description, projectId, assigneeId, priority, status, due } = req.body;
   const cleanTitle = typeof title === 'string' ? title.trim() : '';
+  const cleanDescription = typeof description === 'string' ? description.trim() : '';
   const cleanAssigneeId = normalizeOptionalUuid(assigneeId);
   const cleanDue = normalizeDate(due);
   if (!cleanTitle) return res.status(400).json({ error: 'Task title is required' });
   if (cleanTitle.length > 300) return res.status(400).json({ error: 'Task title must be 300 characters or less' });
+  if (cleanDescription.length > 5000) return res.status(400).json({ error: 'Task description must be 5000 characters or less' });
   if (!projectId || !UUID_REGEX.test(projectId)) return res.status(400).json({ error: 'Valid project is required' });
   if (cleanAssigneeId === undefined) return res.status(400).json({ error: 'Invalid assignee id' });
   if (cleanDue === undefined) return res.status(400).json({ error: 'Due date must use YYYY-MM-DD format' });
@@ -81,7 +83,7 @@ router.post('/', async (req, res) => {
     const r = await db.query(
       `INSERT INTO tasks (title,description,project_id,assignee_id,priority,status,due_date,created_by)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-      [cleanTitle, description||null, projectId, cleanAssigneeId,
+      [cleanTitle, cleanDescription || null, projectId, cleanAssigneeId,
        priority||'medium', status||'todo', cleanDue, req.user.id]
     );
     await db.query(`INSERT INTO activities (text) VALUES ($1)`,
@@ -93,10 +95,13 @@ router.post('/', async (req, res) => {
 // PUT /api/tasks/:id
 router.put('/:id', async (req, res) => {
   const { title, description, projectId, assigneeId, priority, status, due } = req.body;
+  const cleanDescription = typeof description === 'string' ? description.trim() : null;
   if (title !== undefined && (typeof title !== 'string' || !title.trim()))
     return res.status(400).json({ error: 'Task title cannot be empty' });
   if (title !== undefined && title.trim().length > 300)
     return res.status(400).json({ error: 'Task title must be 300 characters or less' });
+  if (cleanDescription !== null && cleanDescription.length > 5000)
+    return res.status(400).json({ error: 'Task description must be 5000 characters or less' });
   if (projectId !== undefined && !UUID_REGEX.test(projectId))
     return res.status(400).json({ error: 'Invalid project id' });
   if (assigneeId !== undefined && normalizeOptionalUuid(assigneeId) === undefined)
@@ -120,7 +125,7 @@ router.put('/:id', async (req, res) => {
     const r = await db.query(
       `UPDATE tasks SET title=$1,description=$2,project_id=$3,assignee_id=$4,
        priority=$5,status=$6,due_date=$7 WHERE id=$8 RETURNING *`,
-      [title!==undefined?title.trim():task.title, description!==undefined?description:task.description, projectId||task.project_id,
+      [title!==undefined?title.trim():task.title, description!==undefined ? cleanDescription : task.description, projectId||task.project_id,
        assigneeId!==undefined?normalizeOptionalUuid(assigneeId):task.assignee_id,
        priority||task.priority, status||task.status, due!==undefined?cleanDue:task.due_date, req.params.id]
     );
