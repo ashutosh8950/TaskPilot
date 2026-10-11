@@ -112,4 +112,27 @@ router.get('/me', authMW, async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
+// POST /api/auth/change-password
+router.post('/change-password', authMW, async (req, res) => {
+  const { currentPassword, newPassword } = req.body || {};
+  if (typeof newPassword !== 'string')
+    return res.status(400).json({ error: 'New password must be a string' });
+  if (newPassword.length < 6 || newPassword.length > 72)
+    return res.status(400).json({ error: 'New password must be between 6 and 72 characters' });
+
+  try {
+    const r = await db.query('SELECT password_hash FROM users WHERE id=$1', [req.user.id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'Not found' });
+    const user = r.rows[0];
+    if (typeof currentPassword !== 'string' || !await bcrypt.compare(currentPassword, user.password_hash))
+      return res.status(400).json({ error: 'Current password is incorrect' });
+    if (await bcrypt.compare(newPassword, user.password_hash))
+      return res.status(400).json({ error: 'New password must be different from current password' });
+
+    const hash = await bcrypt.hash(newPassword, 10);
+    await db.query('UPDATE users SET password_hash=$1 WHERE id=$2', [hash, req.user.id]);
+    return res.json({ message: 'Password updated' });
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
+});
+
 module.exports = router;

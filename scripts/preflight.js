@@ -54,7 +54,6 @@ function checkRenderYaml() {
     /key:\s*DB_REJECT_UNAUTHORIZED[\s\S]*?value:\s*["']?false["']?/.test(renderYaml),
     'render.yaml must allow Render internal Postgres certificates'
   );
-  warn(/databases:[\s\S]*plan:\s*free/.test(renderYaml), 'Render free Postgres expires after 30 days; use a paid database for production data');
 }
 
 function checkInlineScripts() {

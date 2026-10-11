@@ -11,6 +11,7 @@ A full-stack **Project & Task Management** web app with role-based access contro
 ## ✨ Features
 
 - 🔐 **Authentication** — Signup/Login with JWT, bcrypt password hashing
+- 🔑 **Change Password** — Update your password after verifying the current one
 - 👥 **Role-Based Access** — Admin can create/edit/delete projects & manage members; Members can view and manage tasks
 - 📋 **Project Management** — Create, edit, delete projects with color coding & due dates
 - ✅ **Task Management** — Create, assign, prioritize, and track tasks (Todo / In Progress / Done)
@@ -77,6 +78,15 @@ Open `http://localhost:3000` in your browser.
 
 Set `ALLOW_REGISTRATION=false` to disable public self-service signup while keeping the first user bootstrap available when no users exist.
 
+### Environment Variables
+
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `JWT_SECRET` | Secret used to sign authentication tokens |
+| `NODE_ENV` | Set to `production` for production behavior |
+| `ALLOW_REGISTRATION` | Set to `false` to disable signup after the first user |
+
 ---
 
 ## 📡 API Endpoints
@@ -87,6 +97,7 @@ Set `ALLOW_REGISTRATION=false` to disable public self-service signup while keepi
 | POST | /api/auth/register | Register new user |
 | POST | /api/auth/login | Login |
 | GET | /api/auth/me | Get current user |
+| POST | /api/auth/change-password | Change current user's password |
 
 ### Projects
 | Method | Endpoint | Access |
