@@ -62,6 +62,10 @@ npm start          # production
 
 Open `http://localhost:3000` in your browser.
 
+### Running tests
+
+Set `TEST_DATABASE_URL` to a disposable PostgreSQL database, then run `npm test`. Tests truncate the target database before each case; never point `TEST_DATABASE_URL` at production.
+
 ---
 
 ## 🔑 Demo Accounts

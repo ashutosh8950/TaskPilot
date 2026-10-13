@@ -105,17 +105,21 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-initDB().then(() => {
-  const server = app.listen(config.port, () => {
-    console.log(`TaskPilot running on port ${config.port}`);
-  });
+module.exports = app;
 
-  // Graceful shutdown
-  process.on('SIGTERM', () => {
-    console.log('SIGTERM received, shutting down gracefully...');
-    server.close(() => process.exit(0));
+if (require.main === module) {
+  initDB().then(() => {
+    const server = app.listen(config.port, () => {
+      console.log(`TaskPilot running on port ${config.port}`);
+    });
+
+    // Graceful shutdown
+    process.on('SIGTERM', () => {
+      console.log('SIGTERM received, shutting down gracefully...');
+      server.close(() => process.exit(0));
+    });
+  }).catch(err => {
+    console.error('DB init failed:', err);
+    process.exit(1);
   });
-}).catch(err => {
-  console.error('DB init failed:', err);
-  process.exit(1);
-});
+}
