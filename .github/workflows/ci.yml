@@ -33,6 +33,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run preflight
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/taskpilot_test
+          JWT_SECRET: ci-only-jwt-secret-not-a-real-secret-0123456789
       - run: npm test
         env:
           NODE_ENV: test
