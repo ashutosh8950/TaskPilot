@@ -1,13 +1,11 @@
 const assert = require('node:assert/strict');
-const { before, test } = require('node:test');
+const { test } = require('node:test');
 const {
   app,
   installDatabaseHooks,
   registerUser,
   request
 } = require('./helpers');
-
-installDatabaseHooks();
 
 let adminToken;
 let adminId;
@@ -18,7 +16,7 @@ function withToken(token) {
   return { Authorization: `Bearer ${token}` };
 }
 
-before(async () => {
+installDatabaseHooks(async () => {
   const registration = await registerUser({
     name: 'Search Admin',
     email: 'search-admin@example.test',

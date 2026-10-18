@@ -59,13 +59,14 @@ async function resetDb() {
   await db.pool.query('TRUNCATE TABLE users, projects, tasks, activities CASCADE');
 }
 
-function installDatabaseHooks() {
+function installDatabaseHooks(setupFixtures) {
   before(async () => {
     assertTestDatabase();
     lockClient = await db.pool.connect();
     await lockClient.query('SELECT pg_advisory_lock($1)', [databaseLockId]);
     await db.initDB();
     await resetDb();
+    if (setupFixtures) await setupFixtures();
   });
 
   after(async () => {
