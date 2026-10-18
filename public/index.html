@@ -796,6 +796,13 @@
   }
   .filter-chip:hover { border-color: var(--border2); color: var(--text); }
   .filter-chip.active { background: var(--purple-bg); border-color: rgba(124,106,247,0.3); color: var(--accent); }
+  .filter-select {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text2); font: inherit; font-size: 0.78rem; padding: 6px 9px;
+  }
+  .task-pagination { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 18px; }
+  .task-pagination-label { color: var(--text2); font-size: 0.78rem; min-width: 84px; text-align: center; }
+  .task-pagination button:disabled { cursor: default; opacity: 0.45; }
 
   /* ─── ROLE GUARD ──────────────────────────── */
   .admin-only { display: none; }
@@ -1061,7 +1068,7 @@
         <div class="topbar-actions">
           <div class="search-bar">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="task-search" placeholder="Search tasks..." oninput="renderTasksPage()" />
+            <input type="text" id="task-search" placeholder="Search tasks..." />
           </div>
           <button class="btn btn-primary btn-sm" onclick="openModal('modal-task')">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -1071,11 +1078,38 @@
       </div>
       <div style="padding:28px;">
         <div class="filter-bar" id="task-filters">
-          <span class="filter-chip active" onclick="setTaskFilter('assigned', this)">Assigned to me</span>
-          <span class="filter-chip" onclick="setTaskFilter('created', this)">Created by me</span>
-          <span class="filter-chip" onclick="setTaskFilter('all', this)">All tasks</span>
+          <button type="button" class="filter-chip active" data-task-filter="assigned">Assigned to me</button>
+          <button type="button" class="filter-chip" data-task-filter="created">Created by me</button>
+          <button type="button" class="filter-chip" data-task-filter="all">All tasks</button>
+          <select class="filter-select" id="task-status-filter" aria-label="Filter tasks by status">
+            <option value="">All statuses</option>
+            <option value="todo">To do</option>
+            <option value="inprogress">In progress</option>
+            <option value="done">Done</option>
+          </select>
+          <select class="filter-select" id="task-priority-filter" aria-label="Filter tasks by priority">
+            <option value="">All priorities</option>
+            <option value="low">Low priority</option>
+            <option value="medium">Medium priority</option>
+            <option value="high">High priority</option>
+          </select>
+          <select class="filter-select" id="task-sort-filter" aria-label="Sort tasks by">
+            <option value="created_at:desc">Created: newest</option>
+            <option value="created_at:asc">Created: oldest</option>
+            <option value="due_date:asc">Due date: earliest</option>
+            <option value="due_date:desc">Due date: latest</option>
+            <option value="priority:asc">Priority: ascending</option>
+            <option value="priority:desc">Priority: descending</option>
+            <option value="title:asc">Title: A to Z</option>
+            <option value="title:desc">Title: Z to A</option>
+          </select>
         </div>
         <div id="tasks-kanban" class="kanban-board"></div>
+        <div class="task-pagination" id="task-pagination">
+          <button type="button" class="btn btn-secondary btn-sm" data-task-page="previous" disabled>Previous</button>
+          <span class="task-pagination-label" id="task-page-label">Page 1 of 1</span>
+          <button type="button" class="btn btn-secondary btn-sm" data-task-page="next" disabled>Next</button>
+        </div>
       </div>
     </div>
 
@@ -1083,8 +1117,12 @@
     <div id="page-projects" class="page">
       <div class="topbar">
         <div class="topbar-title">All Projects</div>
-        <div class="topbar-actions admin-only-flex">
-          <button class="btn btn-primary btn-sm" onclick="openModal('modal-project')">
+        <div class="topbar-actions">
+          <div class="search-bar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="project-search" placeholder="Search projects..." />
+          </div>
+          <button class="btn btn-primary btn-sm admin-only-flex" onclick="openModal('modal-project')">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             New Project
           </button>
@@ -1421,6 +1459,9 @@ let currentUser = null;
 let currentPage = 'dashboard';
 let currentProjectId = null;
 let taskFilter = 'assigned';
+let currentTaskPage = 1;
+let taskSearchTimer = null;
+let projectSearchTimer = null;
 let cachedMembers = [];
 let cachedProjects = [];
 
@@ -1558,6 +1599,19 @@ document.addEventListener('click', (event) => {
     return;
   }
 
+  const taskFilterButton = event.target.closest('[data-task-filter]');
+  if (taskFilterButton) {
+    setTaskFilter(taskFilterButton.dataset.taskFilter);
+    return;
+  }
+
+  const taskPageButton = event.target.closest('[data-task-page]');
+  if (taskPageButton && !taskPageButton.disabled) {
+    currentTaskPage += taskPageButton.dataset.taskPage === 'next' ? 1 : -1;
+    renderTasksPage();
+    return;
+  }
+
   const projectCard = event.target.closest('.project-card[data-project-id]');
   if (projectCard) {
     const projectId = projectCard.dataset.projectId;
@@ -1583,7 +1637,25 @@ document.addEventListener('change', event => {
   const statusSelect = event.target.closest('[data-task-status-id]');
   if (statusSelect && statusSelect.dataset.taskStatusId) {
     quickUpdateStatus(statusSelect.dataset.taskStatusId, statusSelect.value);
+    return;
   }
+  if (event.target.matches('#task-status-filter, #task-priority-filter, #task-sort-filter')) {
+    currentTaskPage = 1;
+    renderTasksPage();
+  }
+});
+
+document.getElementById('task-search').addEventListener('input', () => {
+  clearTimeout(taskSearchTimer);
+  taskSearchTimer = setTimeout(() => {
+    currentTaskPage = 1;
+    renderTasksPage();
+  }, 300);
+});
+
+document.getElementById('project-search').addEventListener('input', () => {
+  clearTimeout(projectSearchTimer);
+  projectSearchTimer = setTimeout(renderProjectsPage, 300);
 });
 
 // ══════════════════════════════════════════════════
@@ -1743,26 +1815,44 @@ async function renderDashboard() {
 //  TASKS PAGE
 // ══════════════════════════════════════════════════
 
-function setTaskFilter(f, el) {
-  taskFilter = f;
-  document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
-  el.classList.add('active');
+function setTaskFilter(filter) {
+  taskFilter = filter;
+  currentTaskPage = 1;
+  document.querySelectorAll('[data-task-filter]').forEach(button => {
+    button.classList.toggle('active', button.dataset.taskFilter === filter);
+  });
   renderTasksPage();
 }
 
 async function renderTasksPage() {
-  const res = await apiFetch('/api/tasks');
+  const params = new URLSearchParams({
+    page: String(currentTaskPage),
+    limit: '20'
+  });
+  const search = document.getElementById('task-search').value.trim();
+  const status = document.getElementById('task-status-filter').value;
+  const priority = document.getElementById('task-priority-filter').value;
+  const [sort, order] = document.getElementById('task-sort-filter').value.split(':');
+  if (search) params.set('q', search);
+  if (status) params.set('status', status);
+  if (priority) params.set('priority', priority);
+  params.set('sort', sort);
+  params.set('order', order);
+  if (taskFilter === 'assigned') params.set('assigneeId', currentUser.id);
+  if (taskFilter === 'created') params.set('createdBy', currentUser.id);
+
+  const res = await apiFetch(`/api/tasks?${params}`);
   if (!res) return;
-  let tasks = await res.json();
-
-  if (taskFilter === 'assigned') {
-    tasks = tasks.filter(t => t.assignee_id === currentUser.id);
-  } else if (taskFilter === 'created') {
-    tasks = tasks.filter(t => t.created_by === currentUser.id);
+  const tasks = await res.json();
+  const total = Number.parseInt(res.headers.get('X-Total-Count') || '0', 10);
+  const pageCount = Math.max(1, Math.ceil(total / 20));
+  if (currentTaskPage > pageCount) {
+    currentTaskPage = pageCount;
+    return renderTasksPage();
   }
-
-  const search = document.getElementById('task-search').value.toLowerCase();
-  if(search) tasks = tasks.filter(t => t.title.toLowerCase().includes(search) || (t.description||'').toLowerCase().includes(search));
+  document.getElementById('task-page-label').textContent = `Page ${currentTaskPage} of ${pageCount}`;
+  document.querySelector('[data-task-page="previous"]').disabled = currentTaskPage <= 1;
+  document.querySelector('[data-task-page="next"]').disabled = currentTaskPage >= pageCount;
 
   const todo     = tasks.filter(t => t.status==='todo' && !(isOverdue(t.due_date)));
   const inprog   = tasks.filter(t => t.status==='inprogress' && !(isOverdue(t.due_date)));
@@ -1812,7 +1902,11 @@ function renderTaskCard(t) {
 // ══════════════════════════════════════════════════
 
 async function renderProjectsPage() {
-  const [projRes, taskRes] = await Promise.all([apiFetch('/api/projects'), apiFetch('/api/tasks')]);
+  const search = document.getElementById('project-search').value.trim();
+  const params = new URLSearchParams();
+  if (search) params.set('q', search);
+  const projectUrl = params.size ? `/api/projects?${params}` : '/api/projects';
+  const [projRes, taskRes] = await Promise.all([apiFetch(projectUrl), apiFetch('/api/tasks')]);
   if (!projRes || !taskRes) return;
   const projects = await projRes.json();
   const tasks = await taskRes.json();

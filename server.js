@@ -25,6 +25,7 @@ app.use(helmet({ contentSecurityPolicy: false }));
 
 // Same-origin requests work without CORS headers; configured origins get them.
 app.use(cors({
+  exposedHeaders: ['X-Total-Count', 'X-Page', 'X-Limit'],
   origin(origin, callback) {
     if (!config.isProduction) return callback(null, true);
     if (!origin) return callback(null, false);

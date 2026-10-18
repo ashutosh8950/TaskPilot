@@ -9,6 +9,18 @@ router.use(authMW);
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const PROJECT_SORT_COLUMNS = Object.freeze({
+  created_at: 'created_at',
+  due_date: 'due_date',
+  name: 'name'
+});
+const PROJECT_QUERY_PARAMS = new Set(['q', 'sort', 'order', 'page', 'limit']);
+
+function parsePositiveInteger(value) {
+  if (typeof value !== 'string' || !/^\d+$/.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}
 
 function normalizeDate(value) {
   if (!value) return null;
@@ -32,7 +44,47 @@ const mapProject = p => ({
 // GET /api/projects
 router.get('/', async (req, res) => {
   try {
-    const r = await db.query('SELECT * FROM projects ORDER BY created_at DESC');
+    const unknownParam = Object.keys(req.query).find(key => !PROJECT_QUERY_PARAMS.has(key));
+    if (unknownParam) return res.status(400).json({ error: `Invalid query parameter: ${unknownParam}` });
+
+    const hasParam = key => Object.prototype.hasOwnProperty.call(req.query, key);
+    const stringParams = ['q', 'sort', 'order', 'page', 'limit'];
+    const invalidType = stringParams.find(key => hasParam(key) && typeof req.query[key] !== 'string');
+    if (invalidType) return res.status(400).json({ error: `${invalidType} must be a single string value` });
+
+    const sort = hasParam('sort') ? req.query.sort : 'created_at';
+    if (!Object.prototype.hasOwnProperty.call(PROJECT_SORT_COLUMNS, sort)) {
+      return res.status(400).json({ error: 'Invalid sort. Must be: created_at, due_date, name' });
+    }
+    const order = hasParam('order') ? req.query.order : 'desc';
+    if (!['asc', 'desc'].includes(order)) {
+      return res.status(400).json({ error: 'Invalid order. Must be: asc, desc' });
+    }
+
+    const page = hasParam('page') ? parsePositiveInteger(req.query.page) : 1;
+    if (page === null) return res.status(400).json({ error: 'page must be an integer greater than or equal to 1' });
+    const limit = hasParam('limit') ? parsePositiveInteger(req.query.limit) : 20;
+    if (limit === null || limit > 100) return res.status(400).json({ error: 'limit must be an integer from 1 to 100' });
+    const paginationRequested = hasParam('page') || hasParam('limit');
+    const offset = (page - 1) * limit;
+    if (!Number.isSafeInteger(offset)) return res.status(400).json({ error: 'page and limit produce an invalid offset' });
+
+    const params = [];
+    const where = hasParam('q') ? " WHERE (name ILIKE $1 OR COALESCE(description, '') ILIKE $1)" : '';
+    if (hasParam('q')) params.push(`%${req.query.q}%`);
+    const query = `SELECT * FROM projects${where} ORDER BY ${PROJECT_SORT_COLUMNS[sort]} ${order.toUpperCase()}`;
+    if (paginationRequested) {
+      const count = await db.query(`SELECT COUNT(*) FROM projects${where}`, params);
+      const total = Number(count.rows[0].count);
+      const result = await db.query(`${query} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`, [...params, limit, offset]);
+      res.set({
+        'X-Total-Count': String(total),
+        'X-Page': String(page),
+        'X-Limit': String(limit)
+      });
+      return res.json(result.rows.map(mapProject));
+    }
+    const r = await db.query(query, params);
     res.json(r.rows.map(mapProject));
   } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });

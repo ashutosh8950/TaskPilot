@@ -9,6 +9,21 @@ const VALID_STATUS   = ['todo', 'inprogress', 'done'];
 const VALID_PRIORITY = ['low', 'medium', 'high'];
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const TASK_SORT_COLUMNS = Object.freeze({
+  created_at: 'created_at',
+  due_date: 'due_date',
+  priority: 'priority',
+  title: 'title'
+});
+const TASK_QUERY_PARAMS = new Set([
+  'projectId', 'q', 'status', 'priority', 'assigneeId', 'createdBy', 'sort', 'order', 'page', 'limit'
+]);
+
+function parsePositiveInteger(value) {
+  if (typeof value !== 'string' || !/^\d+$/.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}
 
 function normalizeDate(value) {
   if (!value) return null;
@@ -35,20 +50,79 @@ const mapTask = t => ({
   created_by: t.created_by, created_at: t.created_at
 });
 
-// GET /api/tasks  (optional ?projectId=)
+// GET /api/tasks
 router.get('/', async (req, res) => {
   try {
-    let q = 'SELECT * FROM tasks';
-    const params = [];
-    if (req.query.projectId) {
-      if (!UUID_REGEX.test(req.query.projectId)) {
-        return res.status(400).json({ error: 'Invalid project id' });
-      }
-      q += ' WHERE project_id=$1';
-      params.push(req.query.projectId);
+    const unknownParam = Object.keys(req.query).find(key => !TASK_QUERY_PARAMS.has(key));
+    if (unknownParam) return res.status(400).json({ error: `Invalid query parameter: ${unknownParam}` });
+
+    const hasParam = key => Object.prototype.hasOwnProperty.call(req.query, key);
+    const stringParams = ['q', 'projectId', 'status', 'priority', 'assigneeId', 'createdBy', 'sort', 'order', 'page', 'limit'];
+    const invalidType = stringParams.find(key => hasParam(key) && typeof req.query[key] !== 'string');
+    if (invalidType) return res.status(400).json({ error: `${invalidType} must be a single string value` });
+
+    if (hasParam('projectId') && !UUID_REGEX.test(req.query.projectId)) {
+      return res.status(400).json({ error: 'Invalid project id' });
     }
-    q += ' ORDER BY created_at DESC';
-    const r = await db.query(q, params);
+    if (hasParam('status') && !VALID_STATUS.includes(req.query.status)) {
+      return res.status(400).json({ error: 'Invalid status. Must be: todo, inprogress, done' });
+    }
+    if (hasParam('priority') && !VALID_PRIORITY.includes(req.query.priority)) {
+      return res.status(400).json({ error: 'Invalid priority. Must be: low, medium, high' });
+    }
+    for (const key of ['assigneeId', 'createdBy']) {
+      if (hasParam(key) && !UUID_REGEX.test(req.query[key])) {
+        return res.status(400).json({ error: `Invalid ${key === 'assigneeId' ? 'assignee' : 'creator'} id` });
+      }
+    }
+
+    const sort = hasParam('sort') ? req.query.sort : 'created_at';
+    if (!Object.prototype.hasOwnProperty.call(TASK_SORT_COLUMNS, sort)) {
+      return res.status(400).json({ error: 'Invalid sort. Must be: created_at, due_date, priority, title' });
+    }
+    const order = hasParam('order') ? req.query.order : 'desc';
+    if (!['asc', 'desc'].includes(order)) {
+      return res.status(400).json({ error: 'Invalid order. Must be: asc, desc' });
+    }
+
+    const page = hasParam('page') ? parsePositiveInteger(req.query.page) : 1;
+    if (page === null) return res.status(400).json({ error: 'page must be an integer greater than or equal to 1' });
+    const limit = hasParam('limit') ? parsePositiveInteger(req.query.limit) : 20;
+    if (limit === null || limit > 100) return res.status(400).json({ error: 'limit must be an integer from 1 to 100' });
+    const paginationRequested = hasParam('page') || hasParam('limit');
+    const offset = (page - 1) * limit;
+    if (!Number.isSafeInteger(offset)) return res.status(400).json({ error: 'page and limit produce an invalid offset' });
+
+    const conditions = [];
+    const params = [];
+    const addCondition = (sql, value) => {
+      params.push(value);
+      conditions.push(sql.replace('?', `$${params.length}`));
+    };
+    if (hasParam('projectId')) addCondition('project_id=?', req.query.projectId);
+    if (hasParam('q')) {
+      params.push(`%${req.query.q}%`);
+      conditions.push(`(title ILIKE $${params.length} OR COALESCE(description, '') ILIKE $${params.length})`);
+    }
+    if (hasParam('status')) addCondition('status=?', req.query.status);
+    if (hasParam('priority')) addCondition('priority=?', req.query.priority);
+    if (hasParam('assigneeId')) addCondition('assignee_id=?', req.query.assigneeId);
+    if (hasParam('createdBy')) addCondition('created_by=?', req.query.createdBy);
+
+    const where = conditions.length ? ` WHERE ${conditions.join(' AND ')}` : '';
+    const query = `SELECT * FROM tasks${where} ORDER BY ${TASK_SORT_COLUMNS[sort]} ${order.toUpperCase()}`;
+    if (paginationRequested) {
+      const count = await db.query(`SELECT COUNT(*) FROM tasks${where}`, params);
+      const total = Number(count.rows[0].count);
+      const result = await db.query(`${query} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`, [...params, limit, offset]);
+      res.set({
+        'X-Total-Count': String(total),
+        'X-Page': String(page),
+        'X-Limit': String(limit)
+      });
+      return res.json(result.rows.map(mapTask));
+    }
+    const r = await db.query(query, params);
     res.json(r.rows.map(mapTask));
   } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
