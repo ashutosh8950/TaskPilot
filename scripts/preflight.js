@@ -56,18 +56,17 @@ function checkRenderYaml() {
   );
 }
 
-function checkInlineScripts() {
+function checkApplicationScript() {
   const html = fs.readFileSync(filePath('public', 'index.html'), 'utf8');
-  const scripts = [...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)];
+  const scripts = [...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)]
+    .filter(match => match[1].trim());
 
-  assert(scripts.length > 0, 'public/index.html must include an application script');
+  assert(!scripts.length, 'public/index.html must not include inline application scripts');
 
-  for (const [index, script] of scripts.map(match => match[1]).entries()) {
-    try {
-      new Function(script);
-    } catch (err) {
-      failures.push(`Inline script ${index + 1} is invalid: ${err.message}`);
-    }
+  try {
+    new Function(fs.readFileSync(filePath('public', 'js', 'app.js'), 'utf8'));
+  } catch (err) {
+    failures.push(`public/js/app.js is invalid: ${err.message}`);
   }
 }
 
@@ -83,7 +82,8 @@ function checkNodeSyntax() {
     'src/routes/members.js',
     'src/routes/projects.js',
     'src/routes/tasks.js',
-    'scripts/preflight.js'
+    'scripts/preflight.js',
+    'public/js/app.js'
   ];
 
   for (const file of files) {
@@ -101,7 +101,7 @@ function checkNodeSyntax() {
 checkConfig();
 checkPackage();
 checkRenderYaml();
-checkInlineScripts();
+checkApplicationScript();
 checkNodeSyntax();
 
 if (warnings.length) {

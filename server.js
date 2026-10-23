@@ -20,8 +20,23 @@ if (!app.get('trust proxy')) {
   app.set('trust proxy', 1);
 }
 
-// Security headers (CSP disabled for inline scripts in SPA)
-app.use(helmet({ contentSecurityPolicy: false }));
+// Security headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      'default-src': ["'self'"],
+      'script-src': ["'self'"],
+      'style-src': ["'self'", 'https://fonts.googleapis.com', "'unsafe-inline'"],
+      'font-src': ['https://fonts.gstatic.com'],
+      'img-src': ["'self'", 'data:'],
+      'connect-src': ["'self'"],
+      'object-src': ["'none'"],
+      'frame-ancestors': ["'none'"],
+      'base-uri': ["'self'"],
+      'form-action': ["'self'"]
+    }
+  }
+}));
 
 // Same-origin requests work without CORS headers; configured origins get them.
 app.use(cors({
@@ -103,6 +118,7 @@ app.use((err, req, res, next) => {
 
 // SPA fallback
 app.get('*', (req, res) => {
+  if (path.extname(req.path)) return res.status(404).end();
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
