@@ -1,7 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const request = require('supertest');
-const app = require('../server');
+const { app, request, installDatabaseHooks } = require('./helpers');
+
+installDatabaseHooks();
 
 test('serves CSP and static application assets', async () => {
   const html = await request(app).get('/');
