@@ -119,12 +119,13 @@ test('task list without query parameters remains an unpaginated array', async ()
   const response = await request(app).get('/api/tasks').set(withToken(adminToken));
   const expectedKeys = [
     'id', 'title', 'description', 'project_id', 'assignee_id',
-    'priority', 'status', 'due_date', 'created_by', 'created_at'
+    'priority', 'status', 'due_date', 'created_by', 'created_at', 'labels'
   ];
 
   assert.equal(response.status, 200);
   assert.equal(response.body.length, taskIds.length);
   assert.deepEqual(Object.keys(response.body[0]), expectedKeys);
+  assert.equal(Array.isArray(response.body[0].labels), true);
   assert.equal(response.headers['x-total-count'], undefined);
   assert.equal(response.headers['x-page'], undefined);
   assert.equal(response.headers['x-limit'], undefined);
