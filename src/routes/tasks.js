@@ -1,6 +1,7 @@
 const express   = require('express');
 const db        = require('../db');
 const authMW    = require('../middleware/auth');
+const { canModifyTask } = require('../middleware/taskAccess');
 
 const router = express.Router();
 router.use(authMW);
@@ -16,7 +17,7 @@ const TASK_SORT_COLUMNS = Object.freeze({
   title: 'title'
 });
 const TASK_QUERY_PARAMS = new Set([
-  'projectId', 'q', 'status', 'priority', 'assigneeId', 'createdBy', 'sort', 'order', 'page', 'limit'
+  'projectId', 'q', 'status', 'priority', 'assigneeId', 'createdBy', 'labelId', 'sort', 'order', 'page', 'limit'
 ]);
 
 function parsePositiveInteger(value) {
@@ -47,8 +48,18 @@ const mapTask = t => ({
   project_id: t.project_id, assignee_id: t.assignee_id,
   priority: t.priority, status: t.status,
   due_date: t.due_date ? t.due_date.toISOString().split('T')[0] : null,
-  created_by: t.created_by, created_at: t.created_at
+  created_by: t.created_by, created_at: t.created_at,
+  labels: Array.isArray(t.labels) ? t.labels : []
 });
+
+const TASK_SELECT = `SELECT t.*,
+  COALESCE((
+    SELECT json_agg(json_build_object('id', l.id, 'name', l.name, 'color', l.color) ORDER BY l.name)
+    FROM task_labels tl
+    JOIN labels l ON l.id = tl.label_id
+    WHERE tl.task_id = t.id
+  ), '[]'::json) AS labels
+  FROM tasks t`;
 
 // GET /api/tasks
 router.get('/', async (req, res) => {
@@ -57,7 +68,7 @@ router.get('/', async (req, res) => {
     if (unknownParam) return res.status(400).json({ error: `Invalid query parameter: ${unknownParam}` });
 
     const hasParam = key => Object.prototype.hasOwnProperty.call(req.query, key);
-    const stringParams = ['q', 'projectId', 'status', 'priority', 'assigneeId', 'createdBy', 'sort', 'order', 'page', 'limit'];
+    const stringParams = ['q', 'projectId', 'status', 'priority', 'assigneeId', 'createdBy', 'labelId', 'sort', 'order', 'page', 'limit'];
     const invalidType = stringParams.find(key => hasParam(key) && typeof req.query[key] !== 'string');
     if (invalidType) return res.status(400).json({ error: `${invalidType} must be a single string value` });
 
@@ -74,6 +85,9 @@ router.get('/', async (req, res) => {
       if (hasParam(key) && !UUID_REGEX.test(req.query[key])) {
         return res.status(400).json({ error: `Invalid ${key === 'assigneeId' ? 'assignee' : 'creator'} id` });
       }
+    }
+    if (hasParam('labelId') && !UUID_REGEX.test(req.query.labelId)) {
+      return res.status(400).json({ error: 'Invalid label id' });
     }
 
     const sort = hasParam('sort') ? req.query.sort : 'created_at';
@@ -99,20 +113,21 @@ router.get('/', async (req, res) => {
       params.push(value);
       conditions.push(sql.replace('?', `$${params.length}`));
     };
-    if (hasParam('projectId')) addCondition('project_id=?', req.query.projectId);
+    if (hasParam('projectId')) addCondition('t.project_id=?', req.query.projectId);
     if (hasParam('q')) {
       params.push(`%${req.query.q}%`);
-      conditions.push(`(title ILIKE $${params.length} OR COALESCE(description, '') ILIKE $${params.length})`);
+      conditions.push(`(t.title ILIKE $${params.length} OR COALESCE(t.description, '') ILIKE $${params.length})`);
     }
-    if (hasParam('status')) addCondition('status=?', req.query.status);
-    if (hasParam('priority')) addCondition('priority=?', req.query.priority);
-    if (hasParam('assigneeId')) addCondition('assignee_id=?', req.query.assigneeId);
-    if (hasParam('createdBy')) addCondition('created_by=?', req.query.createdBy);
+    if (hasParam('status')) addCondition('t.status=?', req.query.status);
+    if (hasParam('priority')) addCondition('t.priority=?', req.query.priority);
+    if (hasParam('assigneeId')) addCondition('t.assignee_id=?', req.query.assigneeId);
+    if (hasParam('createdBy')) addCondition('t.created_by=?', req.query.createdBy);
+    if (hasParam('labelId')) addCondition('EXISTS (SELECT 1 FROM task_labels filter_tl WHERE filter_tl.task_id=t.id AND filter_tl.label_id=?)', req.query.labelId);
 
     const where = conditions.length ? ` WHERE ${conditions.join(' AND ')}` : '';
-    const query = `SELECT * FROM tasks${where} ORDER BY ${TASK_SORT_COLUMNS[sort]} ${order.toUpperCase()}`;
+    const query = `${TASK_SELECT}${where} ORDER BY t.${TASK_SORT_COLUMNS[sort]} ${order.toUpperCase()}`;
     if (paginationRequested) {
-      const count = await db.query(`SELECT COUNT(*) FROM tasks${where}`, params);
+      const count = await db.query(`SELECT COUNT(*) FROM tasks t${where}`, params);
       const total = Number(count.rows[0].count);
       const result = await db.query(`${query} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`, [...params, limit, offset]);
       res.set({
@@ -130,7 +145,7 @@ router.get('/', async (req, res) => {
 // GET /api/tasks/:id
 router.get('/:id', async (req, res) => {
   try {
-    const r = await db.query('SELECT * FROM tasks WHERE id=$1', [req.params.id]);
+    const r = await db.query(`${TASK_SELECT} WHERE t.id=$1`, [req.params.id]);
     if (!r.rows.length) return res.status(404).json({ error: 'Not found' });
     res.json(mapTask(r.rows[0]));
   } catch (e) { res.status(500).json({ error: 'Server error' }); }
@@ -154,15 +169,16 @@ router.post('/', async (req, res) => {
   if (status && !VALID_STATUS.includes(status))
     return res.status(400).json({ error: 'Invalid status. Must be: todo, inprogress, done' });
   try {
-    const r = await db.query(
+    const inserted = await db.query(
       `INSERT INTO tasks (title,description,project_id,assignee_id,priority,status,due_date,created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
       [cleanTitle, cleanDescription || null, projectId, cleanAssigneeId,
        priority||'medium', status||'todo', cleanDue, req.user.id]
     );
     await db.query(`INSERT INTO activities (text) VALUES ($1)`,
       [`${req.user.name} created task "${cleanTitle}"`]);
-    res.status(201).json(mapTask(r.rows[0]));
+    const result = await db.query(`${TASK_SELECT} WHERE t.id=$1`, [inserted.rows[0].id]);
+    res.status(201).json(mapTask(result.rows[0]));
   } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
 });
 
@@ -192,11 +208,11 @@ router.put('/:id', async (req, res) => {
     const existing = await db.query('SELECT * FROM tasks WHERE id=$1', [req.params.id]);
     if (!existing.rows.length) return res.status(404).json({ error: 'Not found' });
     const task = existing.rows[0];
-    if (req.user.role !== 'admin' && task.created_by !== req.user.id && task.assignee_id !== req.user.id) {
+    if (!canModifyTask(req.user, task)) {
       return res.status(403).json({ error: 'Not authorized to modify this task' });
     }
 
-    const r = await db.query(
+    const updated = await db.query(
       `UPDATE tasks SET title=$1,description=$2,project_id=$3,assignee_id=$4,
        priority=$5,status=$6,due_date=$7 WHERE id=$8 RETURNING *`,
       [title!==undefined?title.trim():task.title, description!==undefined ? cleanDescription : task.description, projectId||task.project_id,
@@ -205,9 +221,10 @@ router.put('/:id', async (req, res) => {
     );
     if (status === 'done') {
       await db.query(`INSERT INTO activities (text) VALUES ($1)`,
-        [`${req.user.name} completed task "${r.rows[0].title}"`]);
+        [`${req.user.name} completed task "${updated.rows[0].title}"`]);
     }
-    res.json(mapTask(r.rows[0]));
+    const result = await db.query(`${TASK_SELECT} WHERE t.id=$1`, [req.params.id]);
+    res.json(mapTask(result.rows[0]));
   } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
 });
 
@@ -221,7 +238,7 @@ router.patch('/:id/status', async (req, res) => {
     const existing = await db.query('SELECT * FROM tasks WHERE id=$1', [req.params.id]);
     if (!existing.rows.length) return res.status(404).json({ error: 'Not found' });
     const task = existing.rows[0];
-    if (req.user.role !== 'admin' && task.created_by !== req.user.id && task.assignee_id !== req.user.id) {
+    if (!canModifyTask(req.user, task)) {
       return res.status(403).json({ error: 'Not authorized to modify this task' });
     }
 
@@ -244,7 +261,7 @@ router.delete('/:id', async (req, res) => {
     if (!t.rows.length) return res.status(404).json({ error: 'Not found' });
     // Authorization: must be admin, creator, or assignee
     const task = t.rows[0];
-    if (req.user.role !== 'admin' && task.created_by !== req.user.id && task.assignee_id !== req.user.id) {
+    if (!canModifyTask(req.user, task)) {
       return res.status(403).json({ error: 'Not authorized to delete this task' });
     }
     await db.query('DELETE FROM tasks WHERE id=$1', [req.params.id]);

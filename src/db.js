@@ -52,6 +52,29 @@ async function initDB() {
       text       TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT NOW()
     );
+
+    CREATE TABLE IF NOT EXISTS comments (
+      id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      task_id    UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      author_id  UUID REFERENCES users(id) ON DELETE SET NULL,
+      body       TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ
+    );
+
+    CREATE TABLE IF NOT EXISTS labels (
+      id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      name       TEXT NOT NULL,
+      color      TEXT NOT NULL,
+      created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS task_labels (
+      task_id  UUID REFERENCES tasks(id) ON DELETE CASCADE,
+      label_id UUID REFERENCES labels(id) ON DELETE CASCADE,
+      PRIMARY KEY (task_id, label_id)
+    );
   `);
 
   // Create indexes for better query performance
@@ -61,6 +84,9 @@ async function initDB() {
     CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
     CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date);
     CREATE INDEX IF NOT EXISTS idx_activities_created_at ON activities(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_comments_task_created_at ON comments(task_id, created_at);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_labels_name_lower ON labels(LOWER(name));
+    CREATE INDEX IF NOT EXISTS idx_task_labels_label_id ON task_labels(label_id);
   `);
 
   await pool.query(`

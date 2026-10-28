@@ -12,6 +12,8 @@ const projectRoutes  = require('./src/routes/projects');
 const taskRoutes     = require('./src/routes/tasks');
 const memberRoutes   = require('./src/routes/members');
 const activityRoutes = require('./src/routes/activities');
+const commentRoutes  = require('./src/routes/comments');
+const labelRoutes    = require('./src/routes/labels');
 const { initDB }     = require('./src/db');
 
 const app = express();
@@ -89,6 +91,8 @@ app.use('/api/projects',   projectRoutes);
 app.use('/api/tasks',      taskRoutes);
 app.use('/api/members',    memberRoutes);
 app.use('/api/activities', activityRoutes);
+app.use('/api',             commentRoutes);
+app.use('/api',             labelRoutes);
 
 // Health check (before SPA fallback)
 app.get('/api/health', async (req, res) => {

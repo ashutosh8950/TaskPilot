@@ -26,6 +26,18 @@ function isOverdue(due) { if(!due) return false; return new Date(due) < new Date
 function initials(name) { if(!name) return '?'; return name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
 const COLORS = ['#7c6af7','#2dd98f','#f5a623','#f05252','#38bdf8','#fb923c','#ec4899','#14b8a6'];
 function avatarColor(name) { let h=0; for(let c of name||'A') h=(h*31+c.charCodeAt(0))%COLORS.length; return COLORS[h]; }
+function safeLabelColor(color) { return typeof color === 'string' && /^#[0-9a-fA-F]{6}$/.test(color) ? color : '#7c6af7'; }
+function priorityBadgeClass(priority) {
+  return ({ low: 'badge-low', medium: 'badge-medium', high: 'badge-high' })[priority] || 'badge-medium';
+}
+function renderLabelChips(labels) {
+  const safeLabels = Array.isArray(labels) ? labels : [];
+  const visible = safeLabels.slice(0, 3).map(label =>
+    `<span class="label-chip" style="background:${safeLabelColor(label.color)};">${escapeHtml(label.name)}</span>`
+  ).join('');
+  const remaining = safeLabels.length > 3 ? `<span class="label-chip label-chip-more">+${safeLabels.length - 3}</span>` : '';
+  return visible + remaining;
+}
 
 function timeAgo(iso) {
   const d = new Date(iso);
@@ -78,6 +90,8 @@ let taskSearchTimer = null;
 let projectSearchTimer = null;
 let cachedMembers = [];
 let cachedProjects = [];
+let cachedLabels = [];
+let currentTaskDetailId = null;
 
 // ══════════════════════════════════════════════════
 //  AUTH UI
@@ -173,6 +187,7 @@ async function initApp() {
 
   await fetchMembers();
   await refreshSidebarProjects();
+  await fetchLabels();
   await navigate('dashboard');
 }
 
@@ -195,6 +210,24 @@ async function refreshSidebarProjects() {
   `).join('') || '<div style="padding:6px 14px;font-size:0.75rem;color:var(--text3);">No projects yet</div>';
 }
 
+async function fetchLabels() {
+  const res = await apiFetch('/api/labels');
+  if (!res) return;
+  cachedLabels = await res.json();
+  renderLabelManagement();
+}
+
+function renderLabelManagement() {
+  const list = document.getElementById('labels-management-list');
+  if (!list) return;
+  list.innerHTML = cachedLabels.map(label => `
+    <div class="label-management-row">
+      <span class="label-chip" style="background:${safeLabelColor(label.color)};">${escapeHtml(label.name)}</span>
+      <button class="btn-icon btn-danger-icon" data-action="delete-label" data-label-id="${safeIdAttribute(label.id)}" title="Delete label">×</button>
+    </div>
+  `).join('') || '<p class="muted-text">No labels yet.</p>';
+}
+
 document.addEventListener('click', (event) => {
   const actionTarget = event.target.closest('[data-action]');
   if (actionTarget) {
@@ -202,6 +235,8 @@ document.addEventListener('click', (event) => {
     const projectId = actionTarget.dataset.projectId;
     const taskId = actionTarget.dataset.taskId;
     const userId = actionTarget.dataset.userId;
+    const labelId = actionTarget.dataset.labelId;
+    const commentId = actionTarget.dataset.commentId;
 
     if (action === 'switch-auth') switchAuthTab(actionTarget.dataset.tab);
     if (action === 'login') doLogin();
@@ -218,6 +253,12 @@ document.addEventListener('click', (event) => {
     if (action === 'save-task') saveTask();
     if (action === 'invite-member') inviteMember();
     if (action === 'copy-password') copyTemporaryPassword();
+    if (action === 'save-task-labels' && taskId) saveTaskLabels(taskId);
+    if (action === 'add-comment' && taskId) addComment(taskId);
+    if (action === 'edit-comment' && commentId && taskId) editComment(commentId, taskId);
+    if (action === 'delete-comment' && commentId && taskId) deleteComment(commentId, taskId);
+    if (action === 'create-label') createLabel();
+    if (action === 'delete-label' && labelId) deleteLabel(labelId);
 
     if (action === 'edit-project' && projectId) editProject(projectId);
     if (action === 'delete-project' && projectId) deleteProject(projectId);
@@ -432,7 +473,7 @@ async function renderDashboard() {
               <td><span style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:${p?escapeHtml(p.color):'#666'};display:inline-block;"></span>${p?escapeHtml(p.name):'—'}</span></td>
               <td>${u ? `<span style="display:flex;align-items:center;gap:5px;"><span class="mini-avatar" style="background:${avatarColor(u.name)}">${escapeHtml(initials(u.name))}</span>${escapeHtml(u.name)}</span>` : '—'}</td>
               <td><span class="badge badge-overdue">${fmtDate(t.due_date)}</span></td>
-              <td><span class="badge badge-${t.priority}">${escapeHtml(t.priority)}</span></td>
+              <td><span class="badge ${priorityBadgeClass(t.priority)}">${escapeHtml(t.priority)}</span></td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -517,9 +558,10 @@ function renderTaskCard(t) {
     <div class="task-card" data-task-id="${safeIdAttribute(t.id)}" data-action="view-task">
       <div class="task-card-top">
         <div class="task-title">${escapeHtml(t.title)}</div>
-        <span class="badge badge-${t.priority}">${escapeHtml(t.priority)}</span>
+        <span class="badge ${priorityBadgeClass(t.priority)}">${escapeHtml(t.priority)}</span>
       </div>
       <div class="task-card-meta">
+        ${renderLabelChips(t.labels)}
         ${p ? `<span style="display:flex;align-items:center;gap:5px;font-size:0.73rem;color:var(--text2);"><span style="width:7px;height:7px;border-radius:50%;background:${escapeHtml(p.color)};display:inline-block;"></span>${escapeHtml(p.name)}</span>` : ''}
         ${t.due_date ? `<span class="task-due ${od?'overdue':''}">${fmtDate(t.due_date)}${od?' (overdue)':''}</span>` : ''}
       </div>
@@ -709,6 +751,7 @@ function openModal(id) {
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
   if (id === 'modal-temp-password') document.getElementById('temp-password-value').value = '';
+  if (id === 'modal-task-detail') currentTaskDetailId = null;
   // Reset form IDs
   if (id === 'modal-project') document.getElementById('project-edit-id').value = '';
   if (id === 'modal-task') document.getElementById('task-edit-id').value = '';
@@ -826,13 +869,19 @@ async function saveTask() {
 }
 
 async function openTaskDetail(taskId) {
-  const res = await apiFetch('/api/tasks/' + taskId);
-  if (!res) return;
+  const [res, commentsRes] = await Promise.all([
+    apiFetch('/api/tasks/' + taskId),
+    apiFetch('/api/tasks/' + taskId + '/comments')
+  ]);
+  if (!res || !commentsRes) return;
   const t = await res.json();
+  const comments = await commentsRes.json();
   const p = cachedProjects.find(p=>p.id===t.project_id);
   const assignee = cachedMembers.find(u=>u.id===t.assignee_id);
   const od = isOverdue(t.due_date) && t.status !== 'done';
   const canEdit = currentUser.role === 'admin' || t.created_by === currentUser.id || t.assignee_id === currentUser.id;
+  const taskLabels = Array.isArray(t.labels) ? t.labels : [];
+  currentTaskDetailId = taskId;
 
   document.getElementById('task-detail-title').textContent = t.title;
   document.getElementById('task-detail-body').innerHTML = `
@@ -848,10 +897,38 @@ async function openTaskDetail(taskId) {
             </select>
           </div>
         </div>
-        <div><span style="color:var(--text3);">Priority</span><div style="margin-top:4px;"><span class="badge badge-${t.priority}">${escapeHtml(t.priority)}</span></div></div>
+        <div><span style="color:var(--text3);">Priority</span><div style="margin-top:4px;"><span class="badge ${priorityBadgeClass(t.priority)}">${escapeHtml(t.priority)}</span></div></div>
         <div><span style="color:var(--text3);">Project</span><div style="margin-top:4px;">${p ? escapeHtml(p.name) : '—'}</div></div>
         <div><span style="color:var(--text3);">Assignee</span><div style="margin-top:4px;">${assignee ? escapeHtml(assignee.name) : 'Unassigned'}</div></div>
         <div><span style="color:var(--text3);">Due Date</span><div style="margin-top:4px;${od?'color:var(--red);':''}">${fmtDate(t.due_date)}${od?' (overdue)':''}</div></div>
+      </div>
+      <div class="task-detail-section">
+        <div class="section-title">Labels</div>
+        <div class="label-chip-list">${renderLabelChips(taskLabels) || '<span class="muted-text">No labels</span>'}</div>
+        ${canEdit ? `<div class="label-select-list">${cachedLabels.map(label => `
+          <label class="label-option">
+            <input type="checkbox" data-task-label-id="${safeIdAttribute(label.id)}" ${taskLabels.some(taskLabel => taskLabel.id === label.id) ? 'checked' : ''} />
+            <span class="label-chip" style="background:${safeLabelColor(label.color)};">${escapeHtml(label.name)}</span>
+          </label>
+        `).join('') || '<span class="muted-text">Create labels in Settings.</span>'}</div>
+        <button class="btn btn-secondary btn-sm" data-action="save-task-labels" data-task-id="${safeIdAttribute(taskId)}">Save Labels</button>` : ''}
+      </div>
+      <div class="task-detail-section">
+        <div class="section-title">Comments</div>
+        <div class="comment-list">${comments.length ? comments.map(comment => {
+          const canEditComment = comment.author_id === currentUser.id;
+          const canDeleteComment = canEditComment || currentUser.role === 'admin';
+          return `<div class="comment-item">
+            <div class="comment-meta"><span>${escapeHtml(comment.author_name || 'Deleted user')}</span><span>${timeAgo(comment.created_at)}</span></div>
+            <div class="comment-body" data-comment-body-id="${safeIdAttribute(comment.id)}">${escapeHtml(comment.body)}</div>
+            ${(canEditComment || canDeleteComment) ? `<div class="comment-actions">
+              ${canEditComment ? `<button class="btn btn-ghost btn-sm" data-action="edit-comment" data-comment-id="${safeIdAttribute(comment.id)}" data-task-id="${safeIdAttribute(taskId)}">Edit</button>` : ''}
+              ${canDeleteComment ? `<button class="btn btn-danger btn-sm" data-action="delete-comment" data-comment-id="${safeIdAttribute(comment.id)}" data-task-id="${safeIdAttribute(taskId)}">Delete</button>` : ''}
+            </div>` : ''}
+          </div>`;
+        }).join('') : '<p class="muted-text">No comments yet.</p>'}</div>
+        <textarea id="new-comment-body" class="comment-input" maxlength="2000" placeholder="Add a comment..."></textarea>
+        <button class="btn btn-primary btn-sm" data-action="add-comment" data-task-id="${safeIdAttribute(taskId)}">Add Comment</button>
       </div>
     </div>
   `;
@@ -860,6 +937,85 @@ async function openTaskDetail(taskId) {
     <button class="btn btn-danger btn-sm" data-action="delete-task" data-task-id="${safeIdAttribute(t.id)}">Delete</button>
   ` : '';
   openModal('modal-task-detail');
+}
+
+async function saveTaskLabels(taskId) {
+  const labelIds = [...document.querySelectorAll('[data-task-label-id]:checked')]
+    .map(input => input.dataset.taskLabelId)
+    .filter(isValidUuid);
+  const res = await apiFetch('/api/tasks/' + taskId + '/labels', {
+    method: 'PUT',
+    body: JSON.stringify({ labelIds })
+  });
+  if (!res) return;
+  if (!res.ok) { const error = await res.json(); showToast(error.error, 'error'); return; }
+  showToast('Labels updated', 'success');
+  await openTaskDetail(taskId);
+  if (currentPage === 'dashboard') await renderDashboard();
+  if (currentPage === 'tasks') await renderTasksPage();
+  if (currentPage === 'project-detail') await renderProjectDetail(currentProjectId);
+}
+
+async function addComment(taskId) {
+  const input = document.getElementById('new-comment-body');
+  const body = input ? input.value : '';
+  const res = await apiFetch('/api/tasks/' + taskId + '/comments', {
+    method: 'POST',
+    body: JSON.stringify({ body })
+  });
+  if (!res) return;
+  if (!res.ok) { const error = await res.json(); showToast(error.error, 'error'); return; }
+  await openTaskDetail(taskId);
+}
+
+async function editComment(commentId, taskId) {
+  const bodyElement = document.querySelector(`[data-comment-body-id="${safeIdAttribute(commentId)}"]`);
+  const body = bodyElement ? prompt('Edit comment', bodyElement.textContent) : null;
+  if (body === null) return;
+  const res = await apiFetch('/api/comments/' + commentId, {
+    method: 'PUT',
+    body: JSON.stringify({ body })
+  });
+  if (!res) return;
+  if (!res.ok) { const error = await res.json(); showToast(error.error, 'error'); return; }
+  await openTaskDetail(taskId);
+}
+
+async function deleteComment(commentId, taskId) {
+  if (!confirm('Are you sure you want to delete this comment?')) return;
+  const res = await apiFetch('/api/comments/' + commentId, { method: 'DELETE' });
+  if (!res) return;
+  if (!res.ok) { const error = await res.json(); showToast(error.error, 'error'); return; }
+  await openTaskDetail(taskId);
+}
+
+async function createLabel() {
+  const nameInput = document.getElementById('label-name');
+  const colorInput = document.getElementById('label-color');
+  const name = nameInput ? nameInput.value.trim() : '';
+  const color = colorInput ? colorInput.value : '';
+  if (!name) { showToast('Label name is required', 'error'); return; }
+  if (!/^#[0-9a-fA-F]{6}$/.test(color)) { showToast('Label color must be a six-digit hex color', 'error'); return; }
+  const res = await apiFetch('/api/labels', {
+    method: 'POST',
+    body: JSON.stringify({ name, color })
+  });
+  if (!res) return;
+  if (!res.ok) { const error = await res.json(); showToast(error.error, 'error'); return; }
+  if (nameInput) nameInput.value = '';
+  await fetchLabels();
+}
+
+async function deleteLabel(labelId) {
+  if (!confirm('Are you sure you want to delete this label?')) return;
+  const res = await apiFetch('/api/labels/' + labelId, { method: 'DELETE' });
+  if (!res) return;
+  if (!res.ok) { const error = await res.json(); showToast(error.error, 'error'); return; }
+  await fetchLabels();
+  const taskDetailModal = document.getElementById('modal-task-detail');
+  if (currentTaskDetailId && taskDetailModal && taskDetailModal.classList.contains('open')) {
+    await openTaskDetail(currentTaskDetailId);
+  }
 }
 
 async function editTask(taskId) {

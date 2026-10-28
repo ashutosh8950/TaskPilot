@@ -886,3 +886,20 @@
 
   .hidden { display: none !important; }
 
+  .label-chip-list, .label-select-list, .label-management-list { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .label-chip { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 99px; color: #fff; font-size: 0.7rem; font-weight: 600; }
+  .label-chip-more { background: var(--surface3) !important; color: var(--text2); }
+  .task-detail-section { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .section-title { margin-bottom: 10px; font-size: 0.78rem; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.06em; }
+  .label-select-list { margin-bottom: 10px; }
+  .label-option { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+  .comment-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+  .comment-item { padding: 10px 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+  .comment-meta { display: flex; justify-content: space-between; gap: 10px; color: var(--text3); font-size: 0.7rem; margin-bottom: 5px; }
+  .comment-body { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.82rem; }
+  .comment-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 7px; }
+  .comment-input { width: 100%; min-height: 72px; margin-bottom: 8px; resize: vertical; }
+  .label-management-list { flex-direction: column; align-items: stretch; margin-top: 14px; }
+  .label-management-row { display: flex; align-items: center; justify-content: space-between; }
+  .muted-text { color: var(--text3); font-size: 0.78rem; }
+
