@@ -70,6 +70,14 @@ function checkApplicationScript() {
   }
 }
 
+function checkStaticAssetWrappers() {
+  const css = fs.readFileSync(filePath('public', 'css', 'app.css'), 'utf8');
+  const js = fs.readFileSync(filePath('public', 'js', 'app.js'), 'utf8');
+
+  assert(!/<style|<\/style/i.test(css), 'public/css/app.css must not contain HTML style wrapper tags');
+  assert(!/<script|<\/script/i.test(js), 'public/js/app.js must not contain HTML script wrapper tags');
+}
+
 function checkNodeSyntax() {
   const files = [
     'server.js',
@@ -102,6 +110,7 @@ checkConfig();
 checkPackage();
 checkRenderYaml();
 checkApplicationScript();
+checkStaticAssetWrappers();
 checkNodeSyntax();
 
 if (warnings.length) {

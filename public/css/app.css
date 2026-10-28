@@ -1,4 +1,4 @@
-<style>
+
   :root {
     --bg: #0a0a0f;
     --surface: #111118;
@@ -885,4 +885,4 @@
   select option { background: var(--surface2); color: var(--text); }
 
   .hidden { display: none !important; }
-</style>
+
