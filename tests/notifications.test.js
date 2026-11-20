@@ -1,6 +1,5 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const db = require('../src/db');
 const { app, installDatabaseHooks, registerUser, loginUser, request } = require('./helpers');
 
 let admin;
