@@ -2,6 +2,7 @@ const express   = require('express');
 const db        = require('../db');
 const authMW    = require('../middleware/auth');
 const { canModifyTask } = require('../middleware/taskAccess');
+const notificationRoutes = require('./notifications');
 
 const router = express.Router();
 router.use(authMW);
@@ -115,8 +116,9 @@ router.get('/', async (req, res) => {
     };
     if (hasParam('projectId')) addCondition('t.project_id=?', req.query.projectId);
     if (hasParam('q')) {
-      params.push(`%${req.query.q}%`);
-      conditions.push(`(t.title ILIKE $${params.length} OR COALESCE(t.description, '') ILIKE $${params.length})`);
+      const escapedQuery = req.query.q.replace(/[\\%_]/g, character => `\\${character}`);
+      params.push(`%${escapedQuery}%`);
+      conditions.push(`(t.title ILIKE $${params.length} ESCAPE '\\' OR COALESCE(t.description, '') ILIKE $${params.length} ESCAPE '\\')`);
     }
     if (hasParam('status')) addCondition('t.status=?', req.query.status);
     if (hasParam('priority')) addCondition('t.priority=?', req.query.priority);
@@ -125,7 +127,11 @@ router.get('/', async (req, res) => {
     if (hasParam('labelId')) addCondition('EXISTS (SELECT 1 FROM task_labels filter_tl WHERE filter_tl.task_id=t.id AND filter_tl.label_id=?)', req.query.labelId);
 
     const where = conditions.length ? ` WHERE ${conditions.join(' AND ')}` : '';
-    const query = `${TASK_SELECT}${where} ORDER BY t.${TASK_SORT_COLUMNS[sort]} ${order.toUpperCase()}`;
+    // Priority uses high=1, medium=2, low=3: asc is low-to-high importance (high first), desc is high-to-low importance.
+    const orderBy = sort === 'priority'
+      ? `CASE t.priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 END ${order.toUpperCase()}`
+      : `t.${TASK_SORT_COLUMNS[sort]} ${order.toUpperCase()}`;
+    const query = `${TASK_SELECT}${where} ORDER BY ${orderBy}`;
     if (paginationRequested) {
       const count = await db.query(`SELECT COUNT(*) FROM tasks t${where}`, params);
       const total = Number(count.rows[0].count);
@@ -178,6 +184,13 @@ router.post('/', async (req, res) => {
     await db.query(`INSERT INTO activities (text) VALUES ($1)`,
       [`${req.user.name} created task "${cleanTitle}"`]);
     const result = await db.query(`${TASK_SELECT} WHERE t.id=$1`, [inserted.rows[0].id]);
+    if (cleanAssigneeId && cleanAssigneeId !== req.user.id) {
+      await notificationRoutes.notifyAssigned({
+        userId: cleanAssigneeId,
+        taskId: inserted.rows[0].id,
+        message: `${req.user.name} assigned you "${cleanTitle}"`
+      });
+    }
     res.status(201).json(mapTask(result.rows[0]));
   } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
 });
@@ -222,6 +235,14 @@ router.put('/:id', async (req, res) => {
     if (status === 'done') {
       await db.query(`INSERT INTO activities (text) VALUES ($1)`,
         [`${req.user.name} completed task "${updated.rows[0].title}"`]);
+    }
+    const newAssigneeId = updated.rows[0].assignee_id;
+    if (newAssigneeId && newAssigneeId !== task.assignee_id && newAssigneeId !== req.user.id) {
+      await notificationRoutes.notifyAssigned({
+        userId: newAssigneeId,
+        taskId: req.params.id,
+        message: `${req.user.name} assigned you "${updated.rows[0].title}"`
+      });
     }
     const result = await db.query(`${TASK_SELECT} WHERE t.id=$1`, [req.params.id]);
     res.json(mapTask(result.rows[0]));

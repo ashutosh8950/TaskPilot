@@ -83,6 +83,14 @@ test('task sorting honors the selected field and order', async () => {
   assert.equal(descending.body[0].title, 'Gamma Close');
 });
 
+test('priority sorting uses importance order', async () => {
+  const ascending = await request(app).get('/api/tasks?sort=priority&order=asc').set(withToken(adminToken));
+  const descending = await request(app).get('/api/tasks?sort=priority&order=desc').set(withToken(adminToken));
+
+  assert.deepEqual(ascending.body.map(task => task.priority), ['high', 'high', 'medium', 'low', 'low']);
+  assert.deepEqual(descending.body.map(task => task.priority), ['low', 'low', 'medium', 'high', 'high']);
+});
+
 test('task pagination returns count headers and handles both page boundaries', async () => {
   const firstPage = await request(app).get('/api/tasks?page=1&limit=2&sort=title&order=asc').set(withToken(adminToken));
   const lastPage = await request(app).get('/api/tasks?page=3&limit=2&sort=title&order=asc').set(withToken(adminToken));
@@ -153,4 +161,16 @@ test('project search, sorting, and pagination work with the same array response 
   assert.equal(Array.isArray(unpaged.body), true);
   assert.deepEqual(Object.keys(unpaged.body[0]), expectedProjectKeys);
   assert.equal(unpaged.headers['x-total-count'], undefined);
+});
+
+test('task and project wildcard searches treat percent and underscore literally', async () => {
+  const percentTask = await request(app).post('/api/tasks').set(withToken(adminToken)).send({ title: '100% complete', projectId });
+  const underscoreProject = await request(app).post('/api/projects').set(withToken(adminToken)).send({ name: 'path\\_project' });
+  assert.equal(percentTask.status, 201);
+  assert.equal(underscoreProject.status, 201);
+
+  const taskSearch = await request(app).get('/api/tasks?q=%25').set(withToken(adminToken));
+  const projectSearch = await request(app).get('/api/projects?q=%5C_').set(withToken(adminToken));
+  assert.deepEqual(taskSearch.body.map(task => task.title), ['100% complete']);
+  assert.deepEqual(projectSearch.body.map(project => project.name), ['path\\_project']);
 });

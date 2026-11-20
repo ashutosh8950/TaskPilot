@@ -14,6 +14,7 @@ const memberRoutes   = require('./src/routes/members');
 const activityRoutes = require('./src/routes/activities');
 const commentRoutes  = require('./src/routes/comments');
 const labelRoutes    = require('./src/routes/labels');
+const notificationRoutes = require('./src/routes/notifications');
 const { initDB }     = require('./src/db');
 
 const app = express();
@@ -109,6 +110,8 @@ app.get('/api/health', async (req, res) => {
     res.status(503).json({ status: 'unhealthy', error: err.message });
   }
 });
+
+app.use('/api/notifications', notificationRoutes);
 
 app.use('/api', (req, res) => {
   res.status(404).json({ error: 'API route not found' });

@@ -1,190 +1,77 @@
-# TaskPilot 🚀
+# TaskPilot
 
-A full-stack **Project & Task Management** web app with role-based access control (Admin/Member).
+TaskPilot is a full-stack project and task management workspace with JWT authentication and admin/member roles. It provides projects, a Kanban task board, search, filters, pagination, comments, labels, activity history, and in-app notifications.
 
-🌐 **Live demo:** [https://taskpilot-nvv5.onrender.com](https://taskpilot-nvv5.onrender.com) · [https://ashutosh8950.github.io/Portfolio/](https://ashutosh8950.github.io/Portfolio/)
+## Features
 
-*Free-tier hosting: the first load can take about a minute while the service wakes up.*
+- Admin/member roles with protected workspace administration
+- Projects with descriptions, colors, due dates, and task progress
+- Tasks with assignees, priorities, statuses, due dates, labels, search, filters, sorting, and pagination
+- Kanban views grouped by To Do, In Progress, and Done
+- Task comments and activity history
+- In-app assignment, comment, due-soon, and overdue notifications
 
----
+## Tech stack
 
-## ✨ Features
+The frontend is vanilla HTML, CSS, and JavaScript. The backend uses Node.js 20–24, Express, PostgreSQL, JWT, bcryptjs, Helmet, CORS, and Supertest for integration tests.
 
-- 🔐 **Authentication** — Signup/Login with JWT, bcrypt password hashing
-- 🔑 **Change Password** — Update your password after verifying the current one
-- 👥 **Role-Based Access** — Admin can create/edit/delete projects & manage members; Members can view and manage tasks
-- 📋 **Project Management** — Create, edit, delete projects with color coding & due dates
-- ✅ **Task Management** — Create, assign, prioritize, and track tasks (Todo / In Progress / Done)
-- 📊 **Dashboard** — Live stats: total projects, tasks, overdue count, progress overview
-- 🗂️ **Kanban Board** — Visual task board per project
-- 👤 **Team Management** — Admin can invite/remove members and assign roles
-- 🔔 **Activity Feed** — Log of the latest workspace actions
-- ⚠️ **Overdue Detection** — Highlights tasks past their due date
+## Local setup
 
----
-
-## 🛠️ Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Frontend | HTML, CSS, Vanilla JS |
-| Backend | Node.js, Express.js |
-| Database | PostgreSQL |
-| Auth | JWT + bcrypt |
-| Deployment | Render |
-
----
-
-## 🚀 Run Locally
-
-### Prerequisites
-- Node.js 20+
-- PostgreSQL (or use Render's managed PostgreSQL)
-
-### Setup
+Use Node.js >=20 and <25. Create a throwaway Neon/Postgres development branch or a local database; never use a production database for local development or tests.
 
 ```bash
-# 1. Clone the repo
-git clone https://github.com/ashutosh8950/TaskPilot.git
-cd TaskPilot
-
-# 2. Install dependencies
 npm install
-
-# 3. Set up environment variables
-cp .env.example .env
-# Edit .env with your DATABASE_URL, JWT_SECRET, and ALLOW_REGISTRATION flag
-
-# 4. Start the server
-npm run dev        # development (with nodemon)
-npm start          # production
+# create .env with the variables below
+npm start
 ```
 
-Open `http://localhost:3000` in your browser.
+Open `http://localhost:3000`.
 
-### Running tests
+### Environment variables
 
-Set `TEST_DATABASE_URL` to a disposable PostgreSQL database, then run `npm test`. Tests truncate the target database before each case; never point `TEST_DATABASE_URL` at production.
+| Variable | Required | Default | Purpose |
+|---|---|---|---|
+| `DATABASE_URL` | Yes | — | PostgreSQL connection string for the running app. |
+| `JWT_SECRET` | Yes | — | JWT signing secret; at least 32 characters. |
+| `NODE_ENV` | No | `development` | Use `production` for production behavior and disable demo seeding. |
+| `PORT` | No | `3000` | HTTP port. |
+| `DB_POOL_MAX` | No | `5` | Maximum PostgreSQL pool size. |
+| `DB_REJECT_UNAUTHORIZED` | No | `true` | PostgreSQL TLS certificate verification in production. |
+| `FRONTEND_URL` | No | empty | Comma-separated allowed production CORS origin(s). |
+| `ALLOW_REGISTRATION` | No | `true` | Set to `false` to disable public registration. |
+| `TEST_DATABASE_URL` | Tests only | — | Disposable test database URL. It must be localhost or have `test` in the database name. |
 
----
+## API reference
 
-## 🔑 Demo Accounts
+All endpoints except health and authentication require `Authorization: Bearer <token>`.
 
-| Role | Email | Password |
+| Method | Endpoint | Purpose |
 |---|---|---|
-| Admin | admin@pilot.com | admin123 |
-| Member | jane@pilot.com | pass123 |
-| Member | bob@pilot.com | pass123 |
+| GET/POST | `/api/auth/me`, `/api/auth/register` | Current user and registration |
+| POST | `/api/auth/login` | Sign in |
+| POST | `/api/auth/change-password` | Change password |
+| GET/POST/PUT/DELETE | `/api/projects`, `/api/projects/:id` | Project access and administration |
+| GET/POST/PUT/PATCH/DELETE | `/api/tasks`, `/api/tasks/:id`, `/api/tasks/:id/status` | Task CRUD and status updates |
+| GET/POST/PUT/DELETE | `/api/tasks/:taskId/comments`, `/api/comments/:id` | Task comments |
+| GET | `/api/members`, `/api/activities`, `/api/labels` | Workspace data |
+| GET | `/api/notifications?unread=true&page=1&limit=50` | Own notifications, newest first |
+| GET | `/api/notifications/unread-count` | Cheap unread count |
+| PATCH | `/api/notifications/:id/read` | Mark one own notification read |
+| POST | `/api/notifications/read-all` | Mark all own notifications read |
+| GET | `/api/health` | Public database health check |
 
-> **Note:** These accounts are seeded only in local development (when `NODE_ENV` is not `production`) and do not exist on the live demo. On the live demo, use **Sign up** to create your own account.
+## Testing
 
-### Registration toggle
+Tests use `node:test` and Supertest. They TRUNCATE tables, so `TEST_DATABASE_URL` must point to a disposable database on localhost or to a database whose name contains `test`; never point it at production. Run `npm test` only with that variable configured. CI uses a PostgreSQL service container.
 
-Set `ALLOW_REGISTRATION=false` to disable public self-service signup while keeping the first user bootstrap available when no users exist.
+## Deployment on Render
 
-### Environment Variables
+Use the Render Blueprint, which reads `render.yaml`. The service auto-deploys on pushes to `main`; the free instance sleeps when idle. Do not edit `render.yaml` casually because it controls the deployment contract and generated environment settings.
 
-| Variable | Description |
-|---|---|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `JWT_SECRET` | Secret used to sign authentication tokens |
-| `NODE_ENV` | Set to `production` for production behavior |
-| `ALLOW_REGISTRATION` | Set to `false` to disable signup after the first user |
+## Security notes
 
----
+TaskPilot uses Helmet with a Content Security Policy, parameterized SQL, role checks, and escaped UI output. JWTs are stored in `localStorage` and expire after seven days; this is a known limitation. Keep secrets out of source control and use a separate disposable database for tests.
 
-## 📡 API Endpoints
+## Demo accounts (development only)
 
-### Auth
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | /api/auth/register | Register new user |
-| POST | /api/auth/login | Login |
-| GET | /api/auth/me | Get current user |
-| POST | /api/auth/change-password | Change current user's password |
-
-### Projects
-| Method | Endpoint | Access |
-|---|---|---|
-| GET | /api/projects | All users |
-| POST | /api/projects | Admin only |
-| PUT | /api/projects/:id | Admin only |
-| DELETE | /api/projects/:id | Admin only |
-
-### Tasks
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | /api/tasks | All tasks (filter by ?projectId=) |
-| POST | /api/tasks | Create task |
-| PUT | /api/tasks/:id | Update task |
-| PATCH | /api/tasks/:id/status | Update status only |
-| DELETE | /api/tasks/:id | Delete task |
-
-### Members
-| Method | Endpoint | Access |
-|---|---|---|
-| GET | /api/members | All users |
-| POST | /api/members | Admin only |
-| PUT | /api/members/:id/role | Admin only |
-| DELETE | /api/members/:id | Admin only |
-
-### Health
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | /api/health | Health check (DB connectivity) |
-
----
-
-## 🌐 Deploy to Render
-
-1. Push code to GitHub
-2. Go to [render.com](https://render.com) → New → **Blueprint**
-3. Connect your GitHub repository — Render will detect the `render.yaml` and auto-configure:
-   - A **Web Service** (Node.js) running `node server.js`
-   - A **PostgreSQL database** (`taskpilot-db`)
-4. Environment variables are set automatically:
-   - `DATABASE_URL` — auto-filled from the database
-   - `JWT_SECRET` — auto-generated
-   - `NODE_ENV=production`
-5. Click **Apply** — Render builds, deploys, and starts the health check at `/api/health`
-
-### Manual Deploy (without Blueprint)
-
-1. Create a **PostgreSQL** database on Render
-2. Create a **Web Service** → connect your repo
-3. Set **Build Command:** `npm install`
-4. Set **Start Command:** `node server.js`
-5. Add environment variables: `DATABASE_URL`, `JWT_SECRET`, `NODE_ENV=production`
-
----
-
-## 📁 Project Structure
-
-```
-taskpilot/
-├── server.js              # Express entry point
-├── render.yaml            # Render deployment config
-├── src/
-│   ├── db.js              # PostgreSQL connection + schema init
-│   ├── routes/
-│   │   ├── auth.js        # Register, Login, Me
-│   │   ├── projects.js    # Projects CRUD
-│   │   ├── tasks.js       # Tasks CRUD
-│   │   ├── members.js     # Team management
-│   │   └── activities.js  # Activity feed
-│   └── middleware/
-│       ├── auth.js        # JWT verification
-│       └── adminOnly.js   # Admin role guard
-├── public/
-│   └── index.html         # Frontend SPA
-├── .env.example           # Environment variables template
-└── package.json
-```
-
----
-
-## 👨‍💻 Built by Ashutosh Gupta
-
-- 📧 guptaashutosh8950@gmail.com
-- 💼 [LinkedIn](https://www.linkedin.com/in/im-ashutosh-gupta/)
-- 🐙 [GitHub](https://github.com/ashutosh8950)
+Demo users are created only when `NODE_ENV` is not `production` and the `users` table is empty. They are intended only for development; do not rely on them in production.

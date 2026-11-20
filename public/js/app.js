@@ -92,6 +92,7 @@ let cachedMembers = [];
 let cachedProjects = [];
 let cachedLabels = [];
 let currentTaskDetailId = null;
+let notificationRefreshTimer = null;
 
 // ══════════════════════════════════════════════════
 //  AUTH UI
@@ -157,6 +158,8 @@ function doLogout() {
   document.getElementById('auth-screen').style.display = 'flex';
   document.getElementById('app-screen').classList.remove('visible');
   document.body.classList.remove('is-admin');
+  clearInterval(notificationRefreshTimer);
+  notificationRefreshTimer = null;
 }
 
 // ══════════════════════════════════════════════════
@@ -179,6 +182,7 @@ async function initApp() {
   av.style.background = avatarColor(currentUser.name);
   document.getElementById('sidebar-username').textContent = currentUser.name;
   document.getElementById('sidebar-userrole').textContent = currentUser.role === 'admin' ? 'Admin' : 'Member';
+  document.getElementById('settings-heading').textContent = currentUser.role === 'admin' ? 'Workspace Settings' : 'Settings';
 
   // Dashboard greeting
   const h = new Date().getHours();
@@ -188,6 +192,11 @@ async function initApp() {
   await fetchMembers();
   await refreshSidebarProjects();
   await fetchLabels();
+  await updateNotificationCount();
+  clearInterval(notificationRefreshTimer);
+  notificationRefreshTimer = setInterval(() => {
+    if (!document.hidden && currentUser) updateNotificationCount();
+  }, 60000);
   await navigate('dashboard');
 }
 
@@ -237,6 +246,7 @@ document.addEventListener('click', (event) => {
     const userId = actionTarget.dataset.userId;
     const labelId = actionTarget.dataset.labelId;
     const commentId = actionTarget.dataset.commentId;
+    const notificationId = actionTarget.dataset.notificationId;
 
     if (action === 'switch-auth') switchAuthTab(actionTarget.dataset.tab);
     if (action === 'login') doLogin();
@@ -247,7 +257,6 @@ document.addEventListener('click', (event) => {
     if (action === 'open-task-for-project') openTaskModalForProject();
     if (action === 'edit-current-project') editCurrentProject();
     if (action === 'save-settings') saveSettings();
-    if (action === 'reset-data') resetAllData();
     if (action === 'close-modal') closeModal(actionTarget.dataset.modalId);
     if (action === 'save-project') saveProject();
     if (action === 'save-task') saveTask();
@@ -267,6 +276,8 @@ document.addEventListener('click', (event) => {
     if (action === 'view-task' && taskId) openTaskDetail(taskId);
     if (action === 'toggle-role' && userId) toggleRole(userId);
     if (action === 'delete-member' && userId) deleteMember(userId);
+    if (action === 'mark-all-notifications-read') markAllNotificationsRead();
+    if (action === 'open-notification' && notificationId) openNotification(notificationId, actionTarget.dataset.taskId);
     return;
   }
 
@@ -316,6 +327,10 @@ document.addEventListener('change', event => {
   }
 });
 
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && currentUser) updateNotificationCount();
+});
+
 document.getElementById('task-search').addEventListener('input', () => {
   clearTimeout(taskSearchTimer);
   taskSearchTimer = setTimeout(() => {
@@ -347,8 +362,51 @@ async function navigate(page) {
   if(page === 'tasks') await renderTasksPage();
   if(page === 'projects') await renderProjectsPage();
   if(page === 'team') await renderTeamPage();
+  if(page === 'notifications') await renderNotificationsPage();
 
   await updateTaskCount();
+  await updateNotificationCount();
+}
+
+async function updateNotificationCount() {
+  const res = await apiFetch('/api/notifications/unread-count');
+  if (!res) return;
+  const data = await res.json();
+  const badge = document.getElementById('notification-count');
+  if (badge) badge.textContent = data.count;
+}
+
+async function renderNotificationsPage() {
+  const res = await apiFetch('/api/notifications');
+  if (!res) return;
+  const notifications = await res.json();
+  const list = document.getElementById('notifications-list');
+  if (!notifications.length) {
+    list.innerHTML = '<div class="empty-state"><p>No notifications yet.</p></div>';
+    return;
+  }
+  list.innerHTML = notifications.map(notification => `
+    <div class="notification-item ${notification.read_at ? '' : 'unread'}" data-action="open-notification" data-notification-id="${safeIdAttribute(notification.id)}" data-task-id="${safeIdAttribute(notification.task_id)}">
+      <div class="notification-message">${escapeHtml(notification.message)}</div>
+      <div class="notification-time">${escapeHtml(timeAgo(notification.created_at))}</div>
+    </div>
+  `).join('');
+}
+
+async function openNotification(notificationId, taskId) {
+  const safeNotificationId = safeIdAttribute(notificationId);
+  const res = await apiFetch(`/api/notifications/${safeNotificationId}/read`, { method: 'PATCH' });
+  if (!res) return;
+  await updateNotificationCount();
+  if (taskId && isValidUuid(taskId)) openTaskDetail(taskId);
+  else await renderNotificationsPage();
+}
+
+async function markAllNotificationsRead() {
+  const res = await apiFetch('/api/notifications/read-all', { method: 'POST' });
+  if (!res) return;
+  await updateNotificationCount();
+  if (currentPage === 'notifications') await renderNotificationsPage();
 }
 
 async function navigateToProject(id) {
@@ -525,19 +583,10 @@ async function renderTasksPage() {
   document.querySelector('[data-task-page="previous"]').disabled = currentTaskPage <= 1;
   document.querySelector('[data-task-page="next"]').disabled = currentTaskPage >= pageCount;
 
-  const todo     = tasks.filter(t => t.status==='todo' && !(isOverdue(t.due_date)));
-  const inprog   = tasks.filter(t => t.status==='inprogress' && !(isOverdue(t.due_date)));
-  const done     = tasks.filter(t => t.status==='done');
-  const overdue  = tasks.filter(t => isOverdue(t.due_date) && t.status!=='done');
-
-  const cols = taskFilter === 'all' ? [
-    { label:'To Do',       tasks: [...overdue, ...todo], color:'var(--text2)' },
-    { label:'In Progress', tasks: inprog,                color:'var(--blue)' },
-    { label:'Done',        tasks: done,                  color:'var(--green)' }
-  ] : [
-    { label:'To Do',       tasks: [...overdue, ...todo], color:'var(--text2)' },
-    { label:'In Progress', tasks: inprog,                color:'var(--blue)' },
-    { label:'Done',        tasks: done,                  color:'var(--green)' }
+  const cols = [
+    { label:'To Do', tasks: tasks.filter(t => t.status === 'todo'), color:'var(--text2)' },
+    { label:'In Progress', tasks: tasks.filter(t => t.status === 'inprogress'), color:'var(--blue)' },
+    { label:'Done', tasks: tasks.filter(t => t.status === 'done'), color:'var(--green)' }
   ];
 
   document.getElementById('tasks-kanban').innerHTML = cols.map(col => `
@@ -564,6 +613,7 @@ function renderTaskCard(t) {
         ${renderLabelChips(t.labels)}
         ${p ? `<span style="display:flex;align-items:center;gap:5px;font-size:0.73rem;color:var(--text2);"><span style="width:7px;height:7px;border-radius:50%;background:${escapeHtml(p.color)};display:inline-block;"></span>${escapeHtml(p.name)}</span>` : ''}
         ${t.due_date ? `<span class="task-due ${od?'overdue':''}">${fmtDate(t.due_date)}${od?' (overdue)':''}</span>` : ''}
+        ${od ? '<span class="badge badge-overdue">Overdue</span>' : ''}
       </div>
     </div>
   `;
@@ -1153,10 +1203,6 @@ document.getElementById('change-password-form').addEventListener('submit', async
     showToast(e.message, 'error');
   }
 });
-
-function resetAllData() {
-  showToast('Reset is not available in production mode', 'error');
-}
 
 // ══════════════════════════════════════════════════
 //  TOAST

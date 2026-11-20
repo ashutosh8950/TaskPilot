@@ -898,7 +898,14 @@
   .comment-meta { display: flex; justify-content: space-between; gap: 10px; color: var(--text3); font-size: 0.7rem; margin-bottom: 5px; }
   .comment-body { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.82rem; }
   .comment-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 7px; }
-  .comment-input { width: 100%; min-height: 72px; margin-bottom: 8px; resize: vertical; }
+  #new-comment-body, .comment-input { width: 100%; min-height: 72px; margin-bottom: 8px; resize: vertical; background: var(--surface2); color: var(--text); border: 1px solid var(--border); font-family: inherit; border-radius: var(--radius-sm); }
+  #new-comment-body:focus, .comment-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,106,247,0.16); }
+  input[type="color"] { width: 42px; height: 34px; padding: 3px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface2); }
+  .notifications-list { display: flex; flex-direction: column; gap: 8px; }
+  .notification-item { padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; }
+  .notification-item.unread { background: var(--surface2); border-color: var(--accent); }
+  .notification-message { color: var(--text); font-size: 0.86rem; }
+  .notification-time { color: var(--text3); font-size: 0.72rem; margin-top: 5px; }
   .label-management-list { flex-direction: column; align-items: stretch; margin-top: 14px; }
   .label-management-row { display: flex; align-items: center; justify-content: space-between; }
   .muted-text { color: var(--text3); font-size: 0.78rem; }

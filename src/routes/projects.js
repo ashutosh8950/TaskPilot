@@ -70,8 +70,9 @@ router.get('/', async (req, res) => {
     if (!Number.isSafeInteger(offset)) return res.status(400).json({ error: 'page and limit produce an invalid offset' });
 
     const params = [];
-    const where = hasParam('q') ? " WHERE (name ILIKE $1 OR COALESCE(description, '') ILIKE $1)" : '';
-    if (hasParam('q')) params.push(`%${req.query.q}%`);
+    const escapedQuery = hasParam('q') ? req.query.q.replace(/[\\%_]/g, character => `\\${character}`) : null;
+    const where = hasParam('q') ? " WHERE (name ILIKE $1 ESCAPE '\\' OR COALESCE(description, '') ILIKE $1 ESCAPE '\\')" : '';
+    if (hasParam('q')) params.push(`%${escapedQuery}%`);
     const query = `SELECT * FROM projects${where} ORDER BY ${PROJECT_SORT_COLUMNS[sort]} ${order.toUpperCase()}`;
     if (paginationRequested) {
       const count = await db.query(`SELECT COUNT(*) FROM projects${where}`, params);

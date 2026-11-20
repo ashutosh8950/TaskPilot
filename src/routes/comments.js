@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const authMW = require('../middleware/auth');
+const notificationRoutes = require('./notifications');
 
 const router = express.Router();
 
@@ -108,6 +109,11 @@ router.post('/tasks/:taskId/comments', authMW, async (req, res) => {
     );
     await db.query('INSERT INTO activities (text) VALUES ($1)',
       [`${req.user.name} commented on task "${task.title}"`]);
+    await notificationRoutes.notifyComment({
+      taskId: req.params.taskId,
+      commenterId: req.user.id,
+      message: `${req.user.name} commented on "${task.title}"`
+    });
     return res.status(201).json(mapComment(comment.rows[0]));
   } catch (e) {
     return res.status(500).json({ error: 'Server error' });

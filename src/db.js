@@ -75,6 +75,16 @@ async function initDB() {
       label_id UUID REFERENCES labels(id) ON DELETE CASCADE,
       PRIMARY KEY (task_id, label_id)
     );
+
+    CREATE TABLE IF NOT EXISTS notifications (
+      id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      task_id    UUID REFERENCES tasks(id) ON DELETE CASCADE,
+      type       TEXT NOT NULL CHECK (type IN ('assigned','comment','due_soon','overdue')),
+      message    TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      read_at    TIMESTAMPTZ
+    );
   `);
 
   // Create indexes for better query performance
@@ -87,6 +97,11 @@ async function initDB() {
     CREATE INDEX IF NOT EXISTS idx_comments_task_created_at ON comments(task_id, created_at);
     CREATE UNIQUE INDEX IF NOT EXISTS idx_labels_name_lower ON labels(LOWER(name));
     CREATE INDEX IF NOT EXISTS idx_task_labels_label_id ON task_labels(label_id);
+    CREATE INDEX IF NOT EXISTS idx_notifications_user_created_at ON notifications(user_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_id) WHERE read_at IS NULL;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_reminder_unique
+      ON notifications(user_id, task_id, type)
+      WHERE type IN ('due_soon','overdue');
   `);
 
   await pool.query(`
