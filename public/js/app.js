@@ -397,6 +397,8 @@ async function openNotification(notificationId, taskId) {
   const safeNotificationId = safeIdAttribute(notificationId);
   const res = await apiFetch(`/api/notifications/${safeNotificationId}/read`, { method: 'PATCH' });
   if (!res) return;
+  const clickedItem = document.querySelector(`[data-notification-id="${safeNotificationId}"]`);
+  if (clickedItem) clickedItem.classList.remove('unread');
   await updateNotificationCount();
   if (taskId && isValidUuid(taskId)) openTaskDetail(taskId);
   else await renderNotificationsPage();
@@ -433,16 +435,19 @@ async function updateTaskCount() {
 // ══════════════════════════════════════════════════
 
 async function renderDashboard() {
-  const [tasksRes, projectsRes, activitiesRes] = await Promise.all([
+  const [tasksRes, projectsRes, statsRes, activitiesRes] = await Promise.all([
     apiFetch('/api/tasks'),
     apiFetch('/api/projects'),
+    apiFetch('/api/projects/stats'),
     apiFetch('/api/activities')
   ]);
-  if (!tasksRes || !projectsRes || !activitiesRes) return;
+  if (!tasksRes || !projectsRes || !statsRes || !activitiesRes) return;
 
   const tasks    = await tasksRes.json();
   const projects = await projectsRes.json();
+  const projectStats = await statsRes.json();
   const activities = await activitiesRes.json();
+  const statsByProject = new Map(projectStats.map(stat => [stat.project_id, stat]));
 
   const myTasks  = tasks.filter(t => t.assignee_id === currentUser.id);
   const overdue  = tasks.filter(t => isOverdue(t.due_date) && t.status !== 'done');
@@ -479,9 +484,10 @@ async function renderDashboard() {
 
   // Progress overview
   const progressHTML = projects.map(p => {
-    const ptasks = tasks.filter(t=>t.project_id===p.id);
-    const pdone  = ptasks.filter(t=>t.status==='done').length;
-    const pct    = ptasks.length > 0 ? Math.round(pdone/ptasks.length*100) : 0;
+    const stat = statsByProject.get(p.id) || { total: 0, done: 0 };
+    const total = Number(stat.total) || 0;
+    const done = Number(stat.done) || 0;
+    const pct = total > 0 ? Math.round(done / total * 100) : 0;
     return `
       <div style="margin-bottom:16px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
@@ -489,12 +495,12 @@ async function renderDashboard() {
             <div style="width:9px;height:9px;border-radius:50%;background:${escapeHtml(p.color)};flex-shrink:0;"></div>
             <span style="font-size:0.85rem;font-weight:500;">${escapeHtml(p.name)}</span>
           </div>
-          <span style="font-family:'Space Mono',monospace;font-size:0.72rem;color:var(--text2);">${pct}%</span>
+          <span style="font-family:'Space Mono',monospace;font-size:0.72rem;color:var(--text2);">${escapeHtml(pct)}%</span>
         </div>
         <div class="progress-bar-wrap">
-          <div class="progress-bar-fill" style="width:${pct}%;background:${escapeHtml(p.color)};"></div>
+          <div class="progress-bar-fill" style="width:${escapeHtml(pct)}%;background:${escapeHtml(p.color)};"></div>
         </div>
-        <div style="font-size:0.72rem;color:var(--text3);margin-top:3px;">${pdone}/${ptasks.length} tasks &nbsp;·&nbsp; Due ${fmtDate(p.due_date)}</div>
+        <div style="font-size:0.72rem;color:var(--text3);margin-top:3px;">${escapeHtml(done)}/${escapeHtml(total)} tasks &nbsp;·&nbsp; Due ${escapeHtml(fmtDate(p.due_date))}</div>
       </div>
     `;
   }).join('') || '<div class="empty-state"><p>No projects yet</p></div>';
@@ -628,10 +634,11 @@ async function renderProjectsPage() {
   const params = new URLSearchParams();
   if (search) params.set('q', search);
   const projectUrl = params.size ? `/api/projects?${params}` : '/api/projects';
-  const [projRes, taskRes] = await Promise.all([apiFetch(projectUrl), apiFetch('/api/tasks')]);
-  if (!projRes || !taskRes) return;
+  const [projRes, statsRes] = await Promise.all([apiFetch(projectUrl), apiFetch('/api/projects/stats')]);
+  if (!projRes || !statsRes) return;
   const projects = await projRes.json();
-  const tasks = await taskRes.json();
+  const projectStats = await statsRes.json();
+  const statsByProject = new Map(projectStats.map(stat => [stat.project_id, stat]));
   cachedProjects = projects;
 
   const el = document.getElementById('projects-grid');
@@ -648,9 +655,10 @@ async function renderProjectsPage() {
   }
 
   el.innerHTML = projects.map(p => {
-    const ptasks = tasks.filter(t=>t.project_id===p.id);
-    const pdone  = ptasks.filter(t=>t.status==='done').length;
-    const pct    = ptasks.length > 0 ? Math.round(pdone/ptasks.length*100) : 0;
+    const stat = statsByProject.get(p.id) || { total: 0, done: 0 };
+    const total = Number(stat.total) || 0;
+    const done = Number(stat.done) || 0;
+    const pct = total > 0 ? Math.round(done / total * 100) : 0;
     const creator = cachedMembers.find(u=>u.id===p.created_by);
     return `
       <div class="project-card" data-project-id="${safeIdAttribute(p.id)}">
@@ -664,11 +672,11 @@ async function renderProjectsPage() {
         <div class="project-card-body">
           <p class="project-card-desc">${escapeHtml(p.description||'No description')}</p>
           <div class="progress-bar-wrap" style="margin:10px 0 6px;">
-            <div class="progress-bar-fill" style="width:${pct}%;background:${escapeHtml(p.color)};"></div>
+            <div class="progress-bar-fill" style="width:${escapeHtml(pct)}%;background:${escapeHtml(p.color)};"></div>
           </div>
           <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--text3);">
-            <span>${pdone}/${ptasks.length} tasks · ${pct}%</span>
-            <span>Due ${fmtDate(p.due_date)}</span>
+            <span>${escapeHtml(done)}/${escapeHtml(total)} tasks · ${escapeHtml(pct)}%</span>
+            <span>Due ${escapeHtml(fmtDate(p.due_date))}</span>
           </div>
         </div>
       </div>
@@ -1197,6 +1205,7 @@ document.getElementById('change-password-form').addEventListener('submit', async
     if (!res) return;
     const result = await res.json();
     if (!res.ok) throw new Error(result.error || 'Unable to update password');
+    if (result.token) localStorage.setItem('token', result.token);
     document.getElementById('change-password-form').reset();
     showToast(result.message, 'success');
   } catch (e) {

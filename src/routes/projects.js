@@ -90,6 +90,24 @@ router.get('/', async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
+// GET /api/projects/stats
+router.get('/stats', async (req, res) => {
+  try {
+    const result = await db.query(`
+      SELECT p.id AS project_id,
+        COUNT(t.id)::int AS total,
+        (COUNT(t.id) FILTER (WHERE t.status = 'done'))::int AS done
+      FROM projects p
+      LEFT JOIN tasks t ON t.project_id = p.id
+      GROUP BY p.id
+      ORDER BY p.created_at, p.id
+    `);
+    return res.json(result.rows);
+  } catch (e) {
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // GET /api/projects/:id
 router.get('/:id', async (req, res) => {
   try {

@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="TaskPilot">
+  <rect width="64" height="64" rx="14" fill="#7c6af7"/>
+  <path d="m16 33 11 11 22-24" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="7"/>
+</svg>

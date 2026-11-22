@@ -51,6 +51,7 @@ All endpoints except health and authentication require `Authorization: Bearer <t
 | POST | `/api/auth/login` | Sign in |
 | POST | `/api/auth/change-password` | Change password |
 | GET/POST/PUT/DELETE | `/api/projects`, `/api/projects/:id` | Project access and administration |
+| GET | `/api/projects/stats` | Per-project total and completed task counts |
 | GET/POST/PUT/PATCH/DELETE | `/api/tasks`, `/api/tasks/:id`, `/api/tasks/:id/status` | Task CRUD and status updates |
 | GET/POST/PUT/DELETE | `/api/tasks/:taskId/comments`, `/api/comments/:id` | Task comments |
 | GET | `/api/members`, `/api/activities`, `/api/labels` | Workspace data |
@@ -70,7 +71,17 @@ Use the Render Blueprint, which reads `render.yaml`. The service auto-deploys on
 
 ## Security notes
 
-TaskPilot uses Helmet with a Content Security Policy, parameterized SQL, role checks, and escaped UI output. JWTs are stored in `localStorage` and expire after seven days; this is a known limitation. Keep secrets out of source control and use a separate disposable database for tests.
+TaskPilot uses Helmet with a Content Security Policy, parameterized SQL, role checks, and escaped UI output. JWTs are stored in `localStorage` and expire after seven days. Changing a password increments the user's token version, invalidating other existing sessions while returning a fresh token for the current session. Keep secrets out of source control and use a separate disposable database for tests.
+
+## Uptime tip
+
+For a free Render instance, configure UptimeRobot to request `/api/health` every five minutes so the service is checked regularly and is less likely to remain asleep.
+
+## Screenshots
+
+Placeholder: dashboard screenshot.
+
+Placeholder: task board screenshot.
 
 ## Demo accounts (development only)
 

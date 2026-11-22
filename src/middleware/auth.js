@@ -12,12 +12,16 @@ module.exports = async (req, res, next) => {
     const token = header.split(' ')[1];
     const decoded = jwt.verify(token, config.jwtSecret);
     const { rows } = await db.query(
-      'SELECT id, name, email, role FROM users WHERE id = $1',
+      'SELECT id, name, email, role, token_version FROM users WHERE id = $1',
       [decoded.id]
     );
 
     if (!rows.length) {
       return res.status(401).json({ error: 'User no longer exists' });
+    }
+
+    if (Number(decoded.tokenVersion ?? 0) !== Number(rows[0].token_version ?? 0)) {
+      return res.status(401).json({ error: 'Token has been revoked' });
     }
 
     req.user = rows[0];

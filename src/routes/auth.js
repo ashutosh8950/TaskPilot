@@ -16,7 +16,7 @@ const mapUser = u => ({
 });
 
 const signToken = u => jwt.sign(
-  { id: u.id, name: u.name, email: u.email, role: u.role },
+  { id: u.id, name: u.name, email: u.email, role: u.role, tokenVersion: Number(u.token_version ?? 0) },
   config.jwtSecret,
   { expiresIn: '7d' }
 );
@@ -121,7 +121,7 @@ router.post('/change-password', authMW, async (req, res) => {
     return res.status(400).json({ error: 'New password must be between 6 and 72 characters' });
 
   try {
-    const r = await db.query('SELECT password_hash FROM users WHERE id=$1', [req.user.id]);
+    const r = await db.query('SELECT password_hash, token_version FROM users WHERE id=$1', [req.user.id]);
     if (!r.rows.length) return res.status(404).json({ error: 'Not found' });
     const user = r.rows[0];
     if (typeof currentPassword !== 'string' || !await bcrypt.compare(currentPassword, user.password_hash))
@@ -130,8 +130,12 @@ router.post('/change-password', authMW, async (req, res) => {
       return res.status(400).json({ error: 'New password must be different from current password' });
 
     const hash = await bcrypt.hash(newPassword, 10);
-    await db.query('UPDATE users SET password_hash=$1 WHERE id=$2', [hash, req.user.id]);
-    return res.json({ message: 'Password updated' });
+    const updated = await db.query(
+      'UPDATE users SET password_hash=$1, token_version=token_version+1 WHERE id=$2 RETURNING token_version',
+      [hash, req.user.id]
+    );
+    const token = signToken({ ...req.user, token_version: updated.rows[0].token_version });
+    return res.json({ message: 'Password updated', token });
   } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
 });
 

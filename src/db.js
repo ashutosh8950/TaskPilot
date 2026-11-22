@@ -1,8 +1,9 @@
 const { Pool } = require('pg');
 const { config } = require('./config');
+const { rewriteSslMode } = require('./db-ssl');
 
 const pool = new Pool({
-  connectionString: config.databaseUrl,
+  connectionString: rewriteSslMode(config.databaseUrl),
   ssl: config.isProduction
     ? { rejectUnauthorized: config.dbRejectUnauthorized }
     : false,
@@ -86,6 +87,8 @@ async function initDB() {
       read_at    TIMESTAMPTZ
     );
   `);
+
+  await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 0');
 
   // Create indexes for better query performance
   await pool.query(`
