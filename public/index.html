@@ -7,13 +7,18 @@
 <title>TaskPilot - Task & Team Management</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/css/app.css" />
 </head>
 <body>
 
+<div class="page-effects" aria-hidden="true"><div class="page-grid"></div><div class="page-blob page-blob-violet"></div><div class="page-blob page-blob-cyan"></div><canvas id="bgCanvas"></canvas></div>
+<div id="cursor-aura" aria-hidden="true"></div>
+<div id="scrollProgress" aria-hidden="true"></div>
+
 <!-- ══════════════ AUTH SCREEN ══════════════ -->
 <div id="auth-screen">
+  <button class="theme-toggle auth-theme-toggle" data-action="toggle-theme" aria-label="Toggle color theme" aria-pressed="false" type="button"></button>
   <div class="auth-card">
     <div class="auth-logo">
       <div class="auth-logo-icon">
@@ -74,6 +79,7 @@
 
 <!-- ══════════════ APP SCREEN ══════════════ -->
 <div id="app-screen">
+  <div id="sidebar-backdrop" hidden data-action="close-sidebar" aria-hidden="true"></div>
   <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="sidebar-logo">
@@ -130,6 +136,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       </button>
     </div>
+    <button class="theme-toggle" data-action="toggle-theme" aria-label="Toggle color theme" aria-pressed="false" type="button"></button>
   </aside>
 
   <!-- MAIN CONTENT -->
@@ -138,7 +145,7 @@
     <!-- ── DASHBOARD ── -->
     <div id="page-dashboard" class="page active">
       <div class="topbar">
-        <div class="topbar-title">Dashboard</div>
+        <div class="topbar-title"><button class="mobile-menu-toggle" data-action="toggle-sidebar" aria-label="Toggle navigation" aria-expanded="false" type="button">☰</button>Dashboard</div>
         <div class="topbar-actions">
           <button class="btn btn-secondary btn-sm admin-only" data-action="open-modal" data-modal-id="modal-project">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -152,8 +159,9 @@
       </div>
       <div style="padding:28px;">
         <div class="page-header">
+          <div class="section-eyebrow">// DASHBOARD</div>
           <h1 id="dash-greeting">Good morning</h1>
-          <p>Here's what's happening across your projects</p>
+          <p id="dash-typing" class="typing-line">Here's what's happening across your projects</p>
         </div>
         <div class="stats-grid" id="dash-stats"></div>
         <div class="grid-2" style="margin-bottom:16px;">
@@ -183,7 +191,7 @@
     <!-- ── MY TASKS ── -->
     <div id="page-tasks" class="page">
       <div class="topbar">
-        <div class="topbar-title">My Tasks</div>
+        <div class="topbar-title"><button class="mobile-menu-toggle" data-action="toggle-sidebar" aria-label="Toggle navigation" aria-expanded="false" type="button">☰</button>My Tasks</div>
         <div class="topbar-actions">
           <div class="search-bar">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -235,7 +243,7 @@
     <!-- ── PROJECTS ── -->
     <div id="page-projects" class="page">
       <div class="topbar">
-        <div class="topbar-title">All Projects</div>
+        <div class="topbar-title"><button class="mobile-menu-toggle" data-action="toggle-sidebar" aria-label="Toggle navigation" aria-expanded="false" type="button">☰</button>All Projects</div>
         <div class="topbar-actions">
           <div class="search-bar">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -255,7 +263,7 @@
     <!-- ── PROJECT DETAIL ── -->
     <div id="page-project-detail" class="page">
       <div class="topbar">
-        <div class="topbar-title" id="detail-project-name">Project</div>
+        <div class="topbar-title"><button class="mobile-menu-toggle" data-action="toggle-sidebar" aria-label="Toggle navigation" aria-expanded="false" type="button">☰</button><span id="detail-project-name">Project</span></div>
         <div class="topbar-actions">
           <button class="btn btn-primary btn-sm" data-action="open-task-for-project">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -279,7 +287,7 @@
     <!-- ── TEAM ── -->
     <div id="page-team" class="page">
       <div class="topbar">
-        <div class="topbar-title">Team Members</div>
+        <div class="topbar-title"><button class="mobile-menu-toggle" data-action="toggle-sidebar" aria-label="Toggle navigation" aria-expanded="false" type="button">☰</button>Team Members</div>
         <div class="topbar-actions admin-only-flex">
           <button class="btn btn-primary btn-sm" data-action="open-modal" data-modal-id="modal-invite">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -292,7 +300,7 @@
           <div class="panel">
             <div class="panel-header">
               <div class="panel-title">All Members</div>
-              <span id="team-count" style="font-family:'Space Mono',monospace;font-size:0.75rem;color:var(--text3);">0 people</span>
+              <span id="team-count" style="font-family:var(--mono);font-size:0.75rem;color:var(--text3);">0 people</span>
             </div>
             <div class="panel-body" id="team-list" style="padding:8px 16px;"></div>
           </div>
@@ -306,7 +314,7 @@
 
     <!-- ── SETTINGS ── -->
     <div id="page-settings" class="page">
-      <div class="topbar"><div class="topbar-title">Settings</div></div>
+      <div class="topbar"><div class="topbar-title"><button class="mobile-menu-toggle" data-action="toggle-sidebar" aria-label="Toggle navigation" aria-expanded="false" type="button">☰</button>Settings</div></div>
       <div style="padding:28px;max-width:560px;">
         <div class="page-header">
           <h1 id="settings-heading">Settings</h1>
@@ -344,7 +352,7 @@
     </div>
 
     <div id="page-notifications" class="page">
-      <div class="topbar"><div class="topbar-title">Notifications</div><div class="topbar-actions"><button class="btn btn-secondary btn-sm" data-action="mark-all-notifications-read">Mark all read</button></div></div>
+      <div class="topbar"><div class="topbar-title"><button class="mobile-menu-toggle" data-action="toggle-sidebar" aria-label="Toggle navigation" aria-expanded="false" type="button">☰</button>Notifications</div><div class="topbar-actions"><button class="btn btn-secondary btn-sm" data-action="mark-all-notifications-read">Mark all read</button></div></div>
       <div style="padding:28px;max-width:760px;"><div id="notifications-list" class="notifications-list"></div></div>
     </div>
 
@@ -512,6 +520,7 @@
 <div class="toast-container" id="toast-container"></div>
 
 <script src="/js/app.js" defer></script>
+<script src="/js/effects.js" defer></script>
 </body>
 </html>
 

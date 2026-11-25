@@ -162,6 +162,13 @@ function doLogout() {
   notificationRefreshTimer = null;
 }
 
+function setSidebarOpen(open) {
+  document.body.classList.toggle('sidebar-open', open);
+  document.querySelectorAll('.mobile-menu-toggle').forEach(button => button.setAttribute('aria-expanded', String(open)));
+  const backdrop = document.getElementById('sidebar-backdrop');
+  if (backdrop) { backdrop.hidden = !open; backdrop.setAttribute('aria-hidden', String(!open)); }
+}
+
 // ══════════════════════════════════════════════════
 //  APP INIT
 // ══════════════════════════════════════════════════
@@ -251,7 +258,7 @@ document.addEventListener('click', (event) => {
     if (action === 'switch-auth') switchAuthTab(actionTarget.dataset.tab);
     if (action === 'login') doLogin();
     if (action === 'signup') doSignup();
-    if (action === 'navigate') navigate(actionTarget.dataset.page);
+    if (action === 'navigate') { setSidebarOpen(false); navigate(actionTarget.dataset.page); }
     if (action === 'logout') doLogout();
     if (action === 'open-modal') openModal(actionTarget.dataset.modalId);
     if (action === 'open-task-for-project') openTaskModalForProject();
@@ -278,6 +285,8 @@ document.addEventListener('click', (event) => {
     if (action === 'delete-member' && userId) deleteMember(userId);
     if (action === 'mark-all-notifications-read') markAllNotificationsRead();
     if (action === 'open-notification' && notificationId) openNotification(notificationId, actionTarget.dataset.taskId);
+    if (action === 'toggle-sidebar') setSidebarOpen(!document.body.classList.contains('sidebar-open'));
+    if (action === 'close-sidebar') setSidebarOpen(false);
     return;
   }
 
@@ -303,6 +312,7 @@ document.addEventListener('click', (event) => {
 
   const projectNav = event.target.closest('[data-project-id].project-nav-item');
   if (projectNav) {
+    setSidebarOpen(false);
     const projectId = projectNav.dataset.projectId;
     if (projectId) navigateToProject(projectId);
     return;
@@ -313,6 +323,10 @@ document.addEventListener('click', (event) => {
     const taskId = taskCard.dataset.taskId;
     if (taskId) openTaskDetail(taskId);
   }
+});
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && document.body.classList.contains('sidebar-open')) setSidebarOpen(false);
 });
 
 document.addEventListener('change', event => {
@@ -391,6 +405,7 @@ async function renderNotificationsPage() {
       <div class="notification-time">${escapeHtml(timeAgo(notification.created_at))}</div>
     </div>
   `).join('');
+  if (window.TPFX) { TPFX.reveal(list); TPFX.countUp(list); }
 }
 
 async function openNotification(notificationId, taskId) {
@@ -435,6 +450,8 @@ async function updateTaskCount() {
 // ══════════════════════════════════════════════════
 
 async function renderDashboard() {
+  document.getElementById('dash-stats').innerHTML = '<div class="skeleton skeleton-stat"></div><div class="skeleton skeleton-stat"></div><div class="skeleton skeleton-stat"></div><div class="skeleton skeleton-stat"></div><div class="skeleton skeleton-stat"></div>';
+  document.getElementById('dash-progress').innerHTML = '<div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line"></div>';
   const [tasksRes, projectsRes, statsRes, activitiesRes] = await Promise.all([
     apiFetch('/api/tasks'),
     apiFetch('/api/projects'),
@@ -453,34 +470,53 @@ async function renderDashboard() {
   const overdue  = tasks.filter(t => isOverdue(t.due_date) && t.status !== 'done');
   const done     = tasks.filter(t => t.status === 'done');
   const inprog   = tasks.filter(t => t.status === 'inprogress');
+  const overallCompletion = tasks.length ? Math.max(0, Math.min(100, Math.round(done.length / tasks.length * 100))) : 0;
 
   document.getElementById('dash-stats').innerHTML = `
     <div class="stat-card">
       <div class="stat-label">Total Projects</div>
-      <div class="stat-value stat-accent">${projects.length}</div>
+      <div class="stat-value stat-accent" data-count="${projects.length}">${projects.length}</div>
       <div class="stat-sub">Active workspaces</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">All Tasks</div>
-      <div class="stat-value">${tasks.length}</div>
+      <div class="stat-value" data-count="${tasks.length}">${tasks.length}</div>
       <div class="stat-sub">${inprog.length} in progress</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Completed</div>
-      <div class="stat-value stat-green">${done.length}</div>
+      <div class="stat-value stat-green" data-count="${done.length}">${done.length}</div>
       <div class="stat-sub">${tasks.length > 0 ? Math.round(done.length/tasks.length*100) : 0}% done rate</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Overdue</div>
-      <div class="stat-value stat-red">${overdue.length}</div>
+      <div class="stat-value stat-red" data-count="${overdue.length}">${overdue.length}</div>
       <div class="stat-sub">Need attention</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">My Tasks</div>
-      <div class="stat-value stat-blue">${myTasks.length}</div>
+      <div class="stat-value stat-blue" data-count="${myTasks.length}">${myTasks.length}</div>
       <div class="stat-sub">${myTasks.filter(t=>t.status!=='done').length} pending</div>
     </div>
+    <div class="completion-ring-card reveal">
+      <div class="completion-ring" data-completion="${overallCompletion}">
+        <svg viewBox="0 0 100 100" role="img" aria-label="Overall completion ${overallCompletion}%">
+          <defs><linearGradient id="completion-ring-gradient" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="var(--violet)"/><stop offset="100%" stop-color="var(--cyan)"/></linearGradient></defs>
+          <circle class="completion-ring-track" cx="50" cy="50" r="40"></circle>
+          <circle class="completion-ring-progress" cx="50" cy="50" r="40" stroke-dasharray="251.2" stroke-dashoffset="251.2"></circle>
+        </svg>
+        <div class="completion-ring-value" data-count="${overallCompletion}" data-suffix="%">${overallCompletion}%</div>
+      </div>
+      <div class="completion-ring-label">Overall completion</div>
+    </div>
   `;
+  const ring = document.querySelector('.completion-ring');
+  if (ring) {
+    const offset = (251.2 * (1 - overallCompletion / 100)).toFixed(2);
+    ring.style.setProperty('--ring-offset', offset);
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) ring.classList.add('is-animated');
+    else requestAnimationFrame(() => ring.classList.add('is-animated'));
+  }
 
   // Progress overview
   const progressHTML = projects.map(p => {
@@ -495,7 +531,7 @@ async function renderDashboard() {
             <div style="width:9px;height:9px;border-radius:50%;background:${escapeHtml(p.color)};flex-shrink:0;"></div>
             <span style="font-size:0.85rem;font-weight:500;">${escapeHtml(p.name)}</span>
           </div>
-          <span style="font-family:'Space Mono',monospace;font-size:0.72rem;color:var(--text2);">${escapeHtml(pct)}%</span>
+          <span style="font-family:var(--mono);font-size:0.72rem;color:var(--text2);">${escapeHtml(pct)}%</span>
         </div>
         <div class="progress-bar-wrap">
           <div class="progress-bar-fill" style="width:${escapeHtml(pct)}%;background:${escapeHtml(p.color)};"></div>
@@ -544,6 +580,7 @@ async function renderDashboard() {
       </table>
     </div>
   ` : '<div class="empty-state" style="padding:28px;"><p style="color:var(--green);font-size:0.85rem;">No overdue tasks. Great work!</p></div>';
+  if (window.TPFX) { TPFX.reveal(document.getElementById('page-dashboard')); TPFX.countUp(document.getElementById('page-dashboard')); TPFX.typing(document.getElementById('dash-typing')); }
 }
 
 // ══════════════════════════════════════════════════
@@ -560,6 +597,7 @@ function setTaskFilter(filter) {
 }
 
 async function renderTasksPage() {
+  document.getElementById('tasks-kanban').innerHTML = '<div class="skeleton skeleton-column"></div><div class="skeleton skeleton-column"></div><div class="skeleton skeleton-column"></div>';
   const params = new URLSearchParams({
     page: String(currentTaskPage),
     limit: '20'
@@ -604,6 +642,7 @@ async function renderTasksPage() {
       ${col.tasks.length ? col.tasks.map(t => renderTaskCard(t)).join('') : '<div style="color:var(--text3);font-size:0.8rem;padding:12px 0;text-align:center;">Empty</div>'}
     </div>
   `).join('');
+  if (window.TPFX) { TPFX.reveal(document.getElementById('tasks-kanban')); TPFX.countUp(document.getElementById('tasks-kanban')); }
 }
 
 function renderTaskCard(t) {
@@ -682,6 +721,7 @@ async function renderProjectsPage() {
       </div>
     `;
   }).join('');
+  if (window.TPFX) { TPFX.reveal(el); TPFX.countUp(el); }
 }
 
 // ══════════════════════════════════════════════════
@@ -724,6 +764,7 @@ async function renderProjectDetail(id) {
       ${renderKanbanCol('Done', done, 'var(--green)')}
     </div>
   `;
+  if (window.TPFX) { TPFX.reveal(content); TPFX.countUp(content); }
 }
 
 function renderKanbanCol(label, tasks, color) {
@@ -753,7 +794,7 @@ async function renderTeamPage() {
   document.getElementById('team-list').innerHTML = cachedMembers.map(u => `
     <div class="team-member-item" style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
       <div style="display:flex;align-items:center;gap:10px;">
-        <div class="mini-avatar" style="background:${avatarColor(u.name)};width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:0.7rem;font-weight:600;">${escapeHtml(initials(u.name))}</div>
+        <div class="mini-avatar" style="background:${avatarColor(u.name)};width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--white);font-size:0.7rem;font-weight:600;">${escapeHtml(initials(u.name))}</div>
         <div>
           <div style="font-size:0.85rem;font-weight:500;">${escapeHtml(u.name)}</div>
           <div style="font-size:0.73rem;color:var(--text3);">${escapeHtml(u.email)}</div>
@@ -778,7 +819,7 @@ async function renderTeamPage() {
       <div style="margin-bottom:14px;">
         <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
           <span style="font-size:0.82rem;font-weight:500;">${escapeHtml(u.name)}</span>
-          <span style="font-family:'Space Mono',monospace;font-size:0.72rem;color:var(--text2);">${udone}/${ut.length}</span>
+          <span style="font-family:var(--mono);font-size:0.72rem;color:var(--text2);">${udone}/${ut.length}</span>
         </div>
         <div class="progress-bar-wrap">
           <div class="progress-bar-fill" style="width:${pct}%;background:${avatarColor(u.name)};"></div>

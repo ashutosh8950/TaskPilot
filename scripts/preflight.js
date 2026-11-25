@@ -73,9 +73,13 @@ function checkApplicationScript() {
 function checkStaticAssetWrappers() {
   const css = fs.readFileSync(filePath('public', 'css', 'app.css'), 'utf8');
   const js = fs.readFileSync(filePath('public', 'js', 'app.js'), 'utf8');
+  const effects = fs.readFileSync(filePath('public', 'js', 'effects.js'), 'utf8');
+  const html = fs.readFileSync(filePath('public', 'index.html'), 'utf8');
 
   assert(!/<style|<\/style/i.test(css), 'public/css/app.css must not contain HTML style wrapper tags');
   assert(!/<script|<\/script/i.test(js), 'public/js/app.js must not contain HTML script wrapper tags');
+  assert(!/<script|<\/script|<style/i.test(effects), 'public/js/effects.js must not contain HTML wrapper tags');
+  assert(/<script\b[^>]*src=["']\/js\/effects\.js["'][^>]*>/i.test(html), 'public/index.html must load /js/effects.js with a script src');
 }
 
 function checkNodeSyntax() {
@@ -91,7 +95,8 @@ function checkNodeSyntax() {
     'src/routes/projects.js',
     'src/routes/tasks.js',
     'scripts/preflight.js',
-    'public/js/app.js'
+    'public/js/app.js',
+    'public/js/effects.js'
   ];
 
   for (const file of files) {
