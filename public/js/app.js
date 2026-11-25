@@ -470,7 +470,15 @@ async function renderDashboard() {
   const overdue  = tasks.filter(t => isOverdue(t.due_date) && t.status !== 'done');
   const done     = tasks.filter(t => t.status === 'done');
   const inprog   = tasks.filter(t => t.status === 'inprogress');
-  const overallCompletion = tasks.length ? Math.max(0, Math.min(100, Math.round(done.length / tasks.length * 100))) : 0;
+  const todo     = tasks.filter(t => t.status === 'todo');
+  const totalTasks = Number(tasks.length);
+  const doneCount = Number(done.length);
+  const inprogCount = Number(inprog.length);
+  const todoCount = Number(todo.length);
+  const overallCompletion = totalTasks ? Math.max(0, Math.min(100, Math.round(doneCount / totalTasks * 100))) : 0;
+  const doneWidth = totalTasks ? (doneCount / totalTasks * 100).toFixed(2) : '0';
+  const inprogWidth = totalTasks ? (inprogCount / totalTasks * 100).toFixed(2) : '0';
+  const todoWidth = totalTasks ? (todoCount / totalTasks * 100).toFixed(2) : '0';
 
   document.getElementById('dash-stats').innerHTML = `
     <div class="stat-card">
@@ -499,23 +507,41 @@ async function renderDashboard() {
       <div class="stat-sub">${myTasks.filter(t=>t.status!=='done').length} pending</div>
     </div>
     <div class="completion-ring-card reveal">
-      <div class="completion-ring" data-completion="${overallCompletion}">
+      <div class="completion-ring" data-completion="${Number(overallCompletion)}">
         <svg viewBox="0 0 100 100" role="img" aria-label="Overall completion ${overallCompletion}%">
           <defs><linearGradient id="completion-ring-gradient" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="var(--violet)"/><stop offset="100%" stop-color="var(--cyan)"/></linearGradient></defs>
           <circle class="completion-ring-track" cx="50" cy="50" r="40"></circle>
           <circle class="completion-ring-progress" cx="50" cy="50" r="40" stroke-dasharray="251.2" stroke-dashoffset="251.2"></circle>
         </svg>
-        <div class="completion-ring-value" data-count="${overallCompletion}" data-suffix="%">${overallCompletion}%</div>
+        <div class="completion-ring-value" data-count="${Number(overallCompletion)}" data-suffix="%">${Number(overallCompletion)}%</div>
       </div>
-      <div class="completion-ring-label">Overall completion</div>
+      <div class="completion-ring-details">
+        <div class="completion-ring-label">Overall completion</div>
+        <div class="completion-ring-summary">${Number(doneCount)} of ${Number(totalTasks)} tasks completed</div>
+        <div class="completion-segments" aria-label="Task status proportions">
+          <span class="completion-segment completion-segment-done" style="--segment-width:${doneWidth}%"></span>
+          <span class="completion-segment completion-segment-inprogress" style="--segment-width:${inprogWidth}%"></span>
+          <span class="completion-segment completion-segment-todo" style="--segment-width:${todoWidth}%"></span>
+        </div>
+        <div class="completion-legend">
+          <span><i class="completion-dot completion-dot-done"></i>Done <b data-count="${Number(doneCount)}">${Number(doneCount)}</b></span>
+          <span><i class="completion-dot completion-dot-inprogress"></i>In progress <b data-count="${Number(inprogCount)}">${Number(inprogCount)}</b></span>
+          <span><i class="completion-dot completion-dot-todo"></i>To do <b data-count="${Number(todoCount)}">${Number(todoCount)}</b></span>
+        </div>
+      </div>
     </div>
   `;
   const ring = document.querySelector('.completion-ring');
   if (ring) {
+    const ringCard = ring.closest('.completion-ring-card');
     const offset = (251.2 * (1 - overallCompletion / 100)).toFixed(2);
     ring.style.setProperty('--ring-offset', offset);
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) ring.classList.add('is-animated');
-    else requestAnimationFrame(() => ring.classList.add('is-animated'));
+    const animateRing = () => {
+      ring.classList.add('is-animated');
+      if (ringCard) ringCard.classList.add('is-animated');
+    };
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) animateRing();
+    else requestAnimationFrame(animateRing);
   }
 
   // Progress overview
@@ -639,7 +665,7 @@ async function renderTasksPage() {
         <div class="kanban-col-title" style="color:${col.color}">${col.label}</div>
         <div class="kanban-count">${col.tasks.length}</div>
       </div>
-      ${col.tasks.length ? col.tasks.map(t => renderTaskCard(t)).join('') : '<div style="color:var(--text3);font-size:0.8rem;padding:12px 0;text-align:center;">Empty</div>'}
+      ${col.tasks.length ? col.tasks.map(t => renderTaskCard(t)).join('') : '<div class="kanban-empty">Empty</div>'}
     </div>
   `).join('');
   if (window.TPFX) { TPFX.reveal(document.getElementById('tasks-kanban')); TPFX.countUp(document.getElementById('tasks-kanban')); }
@@ -774,7 +800,7 @@ function renderKanbanCol(label, tasks, color) {
         <div class="kanban-col-title" style="color:${color}">${label}</div>
         <div class="kanban-count">${tasks.length}</div>
       </div>
-      ${tasks.length ? tasks.map(t => renderTaskCard(t)).join('') : '<div style="color:var(--text3);font-size:0.8rem;padding:12px 0;text-align:center;">Empty</div>'}
+    ${tasks.length ? tasks.map(t => renderTaskCard(t)).join('') : '<div class="kanban-empty">Empty</div>'}
     </div>
   `;
 }
