@@ -22,7 +22,7 @@ function safeIdAttribute(value) {
 }
 
 function fmtDate(d) { if(!d) return '—'; return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
-function isOverdue(due) { if(!due) return false; return new Date(due) < new Date() && new Date(due).toDateString() !== new Date().toDateString(); }
+function isOverdue(due) { return Boolean(due) && String(due).slice(0,10) < new Date().toISOString().slice(0,10); }
 function initials(name) { if(!name) return '?'; return name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
 const COLORS = ['#7c6af7','#2dd98f','#f5a623','#f05252','#38bdf8','#fb923c','#ec4899','#14b8a6'];
 function avatarColor(name) { let h=0; for(let c of name||'A') h=(h*31+c.charCodeAt(0))%COLORS.length; return COLORS[h]; }
@@ -283,6 +283,8 @@ document.addEventListener('click', (event) => {
     if (action === 'view-task' && taskId) openTaskDetail(taskId);
     if (action === 'toggle-role' && userId) toggleRole(userId);
     if (action === 'delete-member' && userId) deleteMember(userId);
+    if (action === 'reset-password' && userId) resetMemberPassword(userId);
+    if (action === 'export-data') exportWorkspaceData();
     if (action === 'mark-all-notifications-read') markAllNotificationsRead();
     if (action === 'open-notification' && notificationId) openNotification(notificationId, actionTarget.dataset.taskId);
     if (action === 'toggle-sidebar') setSidebarOpen(!document.body.classList.contains('sidebar-open'));
@@ -327,6 +329,69 @@ document.addEventListener('click', (event) => {
 
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape' && document.body.classList.contains('sidebar-open')) setSidebarOpen(false);
+});
+
+let draggedTaskId = null;
+let draggedTaskStatus = null;
+
+document.addEventListener('dragstart', event => {
+  const card = event.target.closest('.task-card[draggable="true"]');
+  if (!card) return;
+  draggedTaskId = card.dataset.taskId;
+  draggedTaskStatus = card.closest('.kanban-col')?.dataset.status || null;
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', draggedTaskId || '');
+  card.classList.add('dragging');
+  document.body.classList.add('is-dragging');
+});
+
+document.addEventListener('dragover', event => {
+  const column = event.target.closest('.kanban-col[data-status]');
+  if (!column || !draggedTaskId) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('.kanban-col.drop-target').forEach(item => item.classList.remove('drop-target'));
+  column.classList.add('drop-target');
+});
+
+document.addEventListener('dragenter', event => {
+  const column = event.target.closest('.kanban-col[data-status]');
+  if (column && draggedTaskId) column.classList.add('drop-target');
+});
+
+document.addEventListener('dragleave', event => {
+  const column = event.target.closest('.kanban-col[data-status]');
+  if (column && !column.contains(event.relatedTarget)) column.classList.remove('drop-target');
+});
+
+document.addEventListener('drop', async event => {
+  const column = event.target.closest('.kanban-col[data-status]');
+  if (!column || !draggedTaskId) return;
+  event.preventDefault();
+  const taskId = draggedTaskId;
+  const oldStatus = draggedTaskStatus;
+  const nextStatus = column.dataset.status;
+  if (oldStatus === nextStatus) return;
+  const res = await apiFetch(`/api/tasks/${safeIdAttribute(taskId)}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status: nextStatus })
+  });
+  if (!res || !res.ok) {
+    const data = res ? await res.json().catch(() => ({})) : {};
+    showToast(data.error || 'Could not change task status.', 'error');
+  }
+  document.querySelectorAll('.kanban-col.drop-target').forEach(item => item.classList.remove('drop-target'));
+  if (currentPage === 'tasks') await renderTasksPage();
+  if (currentPage === 'project-detail' && currentProjectId) await renderProjectDetail(currentProjectId);
+});
+
+document.addEventListener('dragend', event => {
+  const card = event.target.closest('.task-card');
+  if (card) card.classList.remove('dragging');
+  document.body.classList.remove('is-dragging');
+  document.querySelectorAll('.kanban-col.drop-target').forEach(item => item.classList.remove('drop-target'));
+  draggedTaskId = null;
+  draggedTaskStatus = null;
 });
 
 document.addEventListener('change', event => {
@@ -438,11 +503,10 @@ async function navigateToProject(id) {
 }
 
 async function updateTaskCount() {
-  const res = await apiFetch('/api/tasks');
+  const res = await apiFetch('/api/dashboard/summary');
   if (!res) return;
-  const tasks = await res.json();
-  const count = tasks.filter(t => t.assignee_id === currentUser.id && t.status !== 'done').length;
-  document.getElementById('my-task-count').textContent = count;
+  const summary = await res.json();
+  document.getElementById('my-task-count').textContent = Number(summary.my.pending);
 }
 
 // ══════════════════════════════════════════════════
@@ -452,29 +516,29 @@ async function updateTaskCount() {
 async function renderDashboard() {
   document.getElementById('dash-stats').innerHTML = '<div class="skeleton skeleton-stat"></div><div class="skeleton skeleton-stat"></div><div class="skeleton skeleton-stat"></div><div class="skeleton skeleton-stat"></div><div class="skeleton skeleton-stat"></div>';
   document.getElementById('dash-progress').innerHTML = '<div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line"></div>';
-  const [tasksRes, projectsRes, statsRes, activitiesRes] = await Promise.all([
-    apiFetch('/api/tasks'),
+  const [summaryRes, projectsRes, statsRes, activitiesRes] = await Promise.all([
+    apiFetch('/api/dashboard/summary'),
     apiFetch('/api/projects'),
     apiFetch('/api/projects/stats'),
     apiFetch('/api/activities')
   ]);
-  if (!tasksRes || !projectsRes || !statsRes || !activitiesRes) return;
+  if (!summaryRes || !projectsRes || !statsRes || !activitiesRes) return;
 
-  const tasks    = await tasksRes.json();
+  const summary  = await summaryRes.json();
   const projects = await projectsRes.json();
   const projectStats = await statsRes.json();
   const activities = await activitiesRes.json();
   const statsByProject = new Map(projectStats.map(stat => [stat.project_id, stat]));
 
-  const myTasks  = tasks.filter(t => t.assignee_id === currentUser.id);
-  const overdue  = tasks.filter(t => isOverdue(t.due_date) && t.status !== 'done');
-  const done     = tasks.filter(t => t.status === 'done');
-  const inprog   = tasks.filter(t => t.status === 'inprogress');
-  const todo     = tasks.filter(t => t.status === 'todo');
-  const totalTasks = Number(tasks.length);
-  const doneCount = Number(done.length);
-  const inprogCount = Number(inprog.length);
-  const todoCount = Number(todo.length);
+  const totals = summary.totals || {};
+  const my = summary.my || {};
+  const overdue = Array.isArray(summary.overdue_tasks) ? summary.overdue_tasks : [];
+  const totalTasks = Number(totals.tasks) || 0;
+  const doneCount = Number(totals.done) || 0;
+  const inprogCount = Number(totals.inprogress) || 0;
+  const todoCount = Number(totals.todo) || 0;
+  const overdueTotal = Number(totals.overdue) || 0;
+  const myAssigned = Number(my.assigned) || 0;
   const overallCompletion = totalTasks ? Math.max(0, Math.min(100, Math.round(doneCount / totalTasks * 100))) : 0;
   const doneWidth = totalTasks ? (doneCount / totalTasks * 100).toFixed(2) : '0';
   const inprogWidth = totalTasks ? (inprogCount / totalTasks * 100).toFixed(2) : '0';
@@ -483,28 +547,28 @@ async function renderDashboard() {
   document.getElementById('dash-stats').innerHTML = `
     <div class="stat-card">
       <div class="stat-label">Total Projects</div>
-      <div class="stat-value stat-accent" data-count="${projects.length}">${projects.length}</div>
+      <div class="stat-value stat-accent" data-count="${Number(projects.length)}">${Number(projects.length)}</div>
       <div class="stat-sub">Active workspaces</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">All Tasks</div>
-      <div class="stat-value" data-count="${tasks.length}">${tasks.length}</div>
-      <div class="stat-sub">${inprog.length} in progress</div>
+      <div class="stat-value" data-count="${totalTasks}">${totalTasks}</div>
+      <div class="stat-sub">${inprogCount} in progress</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Completed</div>
-      <div class="stat-value stat-green" data-count="${done.length}">${done.length}</div>
-      <div class="stat-sub">${tasks.length > 0 ? Math.round(done.length/tasks.length*100) : 0}% done rate</div>
+      <div class="stat-value stat-green" data-count="${doneCount}">${doneCount}</div>
+      <div class="stat-sub">${totalTasks > 0 ? Math.round(doneCount/totalTasks*100) : 0}% done rate</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Overdue</div>
-      <div class="stat-value stat-red" data-count="${overdue.length}">${overdue.length}</div>
+      <div class="stat-value stat-red" data-count="${overdueTotal}">${overdueTotal}</div>
       <div class="stat-sub">Need attention</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">My Tasks</div>
-      <div class="stat-value stat-blue" data-count="${myTasks.length}">${myTasks.length}</div>
-      <div class="stat-sub">${myTasks.filter(t=>t.status!=='done').length} pending</div>
+      <div class="stat-value stat-blue" data-count="${myAssigned}">${myAssigned}</div>
+      <div class="stat-sub">${Number(my.pending) || 0} pending</div>
     </div>
     <div class="completion-ring-card reveal">
       <div class="completion-ring" data-completion="${Number(overallCompletion)}">
@@ -583,7 +647,7 @@ async function renderDashboard() {
   `).join('') : '<p style="color:var(--text3);font-size:0.82rem;padding:10px 4px;">No activity yet</p>';
 
   // Overdue
-  document.getElementById('overdue-count-badge').textContent = overdue.length + ' task' + (overdue.length!==1?'s':'');
+  document.getElementById('overdue-count-badge').textContent = overdueTotal + ' task' + (overdueTotal!==1?'s':'');
   document.getElementById('dash-overdue').innerHTML = overdue.length ? `
     <div class="table-wrap">
       <table>
@@ -592,19 +656,18 @@ async function renderDashboard() {
         </tr></thead>
         <tbody>
           ${overdue.map(t => {
-            const p = projects.find(p=>p.id===t.project_id);
-            const u = cachedMembers.find(u=>u.id===t.assignee_id);
             return `<tr style="cursor:pointer;" data-task-id="${safeIdAttribute(t.id)}" data-action="view-task">
               <td><span style="font-weight:500;">${escapeHtml(t.title)}</span></td>
-              <td><span style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:${p?escapeHtml(p.color):'#666'};display:inline-block;"></span>${p?escapeHtml(p.name):'—'}</span></td>
-              <td>${u ? `<span style="display:flex;align-items:center;gap:5px;"><span class="mini-avatar" style="background:${avatarColor(u.name)}">${escapeHtml(initials(u.name))}</span>${escapeHtml(u.name)}</span>` : '—'}</td>
-              <td><span class="badge badge-overdue">${fmtDate(t.due_date)}</span></td>
+              <td><span style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:${t.project_color ? escapeHtml(t.project_color) : 'var(--text3)'};display:inline-block;"></span>${t.project_name ? escapeHtml(t.project_name) : '—'}</span></td>
+              <td>${t.assignee_name ? `<span style="display:flex;align-items:center;gap:5px;"><span class="mini-avatar" style="background:${avatarColor(t.assignee_name)}">${escapeHtml(initials(t.assignee_name))}</span>${escapeHtml(t.assignee_name)}</span>` : '—'}</td>
+              <td><span class="badge badge-overdue">${t.due_date ? escapeHtml(fmtDate(t.due_date)) : '—'}</span></td>
               <td><span class="badge ${priorityBadgeClass(t.priority)}">${escapeHtml(t.priority)}</span></td>
             </tr>`;
           }).join('')}
         </tbody>
       </table>
     </div>
+    ${overdueTotal > overdue.length ? `<div class="muted-text" style="padding-top:12px;font-size:0.78rem;">+${overdueTotal - overdue.length} more</div>` : ''}
   ` : '<div class="empty-state" style="padding:28px;"><p style="color:var(--green);font-size:0.85rem;">No overdue tasks. Great work!</p></div>';
   if (window.TPFX) { TPFX.reveal(document.getElementById('page-dashboard')); TPFX.countUp(document.getElementById('page-dashboard')); TPFX.typing(document.getElementById('dash-typing')); }
 }
@@ -654,13 +717,13 @@ async function renderTasksPage() {
   document.querySelector('[data-task-page="next"]').disabled = currentTaskPage >= pageCount;
 
   const cols = [
-    { label:'To Do', tasks: tasks.filter(t => t.status === 'todo'), color:'var(--text2)' },
-    { label:'In Progress', tasks: tasks.filter(t => t.status === 'inprogress'), color:'var(--blue)' },
-    { label:'Done', tasks: tasks.filter(t => t.status === 'done'), color:'var(--green)' }
+    { label:'To Do', status:'todo', tasks: tasks.filter(t => t.status === 'todo'), color:'var(--text2)' },
+    { label:'In Progress', status:'inprogress', tasks: tasks.filter(t => t.status === 'inprogress'), color:'var(--blue)' },
+    { label:'Done', status:'done', tasks: tasks.filter(t => t.status === 'done'), color:'var(--green)' }
   ];
 
   document.getElementById('tasks-kanban').innerHTML = cols.map(col => `
-    <div class="kanban-col">
+    <div class="kanban-col" data-status="${col.status}">
       <div class="kanban-col-header">
         <div class="kanban-col-title" style="color:${col.color}">${col.label}</div>
         <div class="kanban-count">${col.tasks.length}</div>
@@ -675,7 +738,7 @@ function renderTaskCard(t) {
   const p = cachedProjects.find(p=>p.id===t.project_id);
   const od = isOverdue(t.due_date) && t.status !== 'done';
   return `
-    <div class="task-card" data-task-id="${safeIdAttribute(t.id)}" data-action="view-task">
+    <div class="task-card" draggable="true" title="Drag to change status" data-task-id="${safeIdAttribute(t.id)}" data-action="view-task">
       <div class="task-card-top">
         <div class="task-title">${escapeHtml(t.title)}</div>
         <span class="badge ${priorityBadgeClass(t.priority)}">${escapeHtml(t.priority)}</span>
@@ -795,7 +858,7 @@ async function renderProjectDetail(id) {
 
 function renderKanbanCol(label, tasks, color) {
   return `
-    <div class="kanban-col">
+    <div class="kanban-col" data-status="${label === 'To Do' ? 'todo' : label === 'In Progress' ? 'inprogress' : 'done'}">
       <div class="kanban-col-header">
         <div class="kanban-col-title" style="color:${color}">${label}</div>
         <div class="kanban-count">${tasks.length}</div>
@@ -830,6 +893,7 @@ async function renderTeamPage() {
         <span class="badge badge-${u.role==='admin'?'high':'medium'}" style="font-size:0.7rem;">${escapeHtml(u.role)}</span>
         ${currentUser.role==='admin' && u.id !== currentUser.id ? `
           <button class="btn-icon" data-action="toggle-role" data-user-id="${safeIdAttribute(u.id)}" title="Toggle role"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></button>
+          <button class="btn-icon" data-action="reset-password" data-user-id="${safeIdAttribute(u.id)}" title="Reset password" aria-label="Reset password"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v4"/><path d="M7.5 5.5a8 8 0 1 0 9 0"/><path d="M12 12v4"/></svg></button>
           <button class="btn-icon btn-danger-icon" data-action="delete-member" data-user-id="${safeIdAttribute(u.id)}" title="Remove"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>
         ` : ''}
       </div>
@@ -853,6 +917,49 @@ async function renderTeamPage() {
       </div>
     `;
   }).join('') || '<p style="color:var(--text3);">No members</p>';
+}
+
+async function resetMemberPassword(userId) {
+  if (!isValidUuid(userId) || !window.confirm('Reset this member password? Their existing sessions will be signed out.')) return;
+  const res = await apiFetch(`/api/members/${safeIdAttribute(userId)}/reset-password`, { method: 'POST' });
+  if (!res) return;
+  let data;
+  try {
+    data = await res.json();
+  } catch (error) {
+    showToast('Password reset failed.', 'error');
+    return;
+  }
+  if (!res.ok) { showToast(data.error || 'Password reset failed.', 'error'); return; }
+  document.getElementById('temp-password-value').value = data.temporaryPassword || '';
+  const title = document.getElementById('modal-temp-password')?.querySelector('.modal-title');
+  if (title) title.textContent = 'Temporary Password';
+  openModal('modal-temp-password');
+  showToast('Password reset successfully.', 'success');
+}
+
+async function exportWorkspaceData() {
+  const res = await apiFetch('/api/admin/export');
+  if (!res) return;
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    showToast(data.error || 'Export failed.', 'error');
+    return;
+  }
+  try {
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `taskpilot-export-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    showToast('Workspace export downloaded.', 'success');
+  } catch (e) {
+    showToast('Export failed.', 'error');
+  }
 }
 
 // ══════════════════════════════════════════════════

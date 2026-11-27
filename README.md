@@ -52,14 +52,19 @@ All endpoints except health and authentication require `Authorization: Bearer <t
 | POST | `/api/auth/change-password` | Change password |
 | GET/POST/PUT/DELETE | `/api/projects`, `/api/projects/:id` | Project access and administration |
 | GET | `/api/projects/stats` | Per-project total and completed task counts |
+| GET | `/api/dashboard/summary` | Dashboard totals, current-user task counts, and capped overdue tasks |
 | GET/POST/PUT/PATCH/DELETE | `/api/tasks`, `/api/tasks/:id`, `/api/tasks/:id/status` | Task CRUD and status updates |
 | GET/POST/PUT/DELETE | `/api/tasks/:taskId/comments`, `/api/comments/:id` | Task comments |
 | GET | `/api/members`, `/api/activities`, `/api/labels` | Workspace data |
+| POST | `/api/members/:id/reset-password` | Admin-only member password reset; returns a one-time temporary password |
+| GET | `/api/admin/export` | Admin-only JSON workspace backup download |
 | GET | `/api/notifications?unread=true&page=1&limit=50` | Own notifications, newest first |
 | GET | `/api/notifications/unread-count` | Cheap unread count |
 | PATCH | `/api/notifications/:id/read` | Mark one own notification read |
 | POST | `/api/notifications/read-all` | Mark all own notifications read |
 | GET | `/api/health` | Public database health check |
+
+Dragging a task between Kanban columns sends the same `PATCH /api/tasks/:id/status` request as the status control in task details. The server remains the source of truth for authorization.
 
 ## Testing
 
@@ -72,6 +77,10 @@ Use the Render Blueprint, which reads `render.yaml`. The service auto-deploys on
 ## Security notes
 
 TaskPilot uses Helmet with a Content Security Policy, parameterized SQL, role checks, and escaped UI output. JWTs are stored in `localStorage` and expire after seven days. Changing a password increments the user's token version, invalidating other existing sessions while returning a fresh token for the current session. Keep secrets out of source control and use a separate disposable database for tests.
+
+### Account recovery
+
+Admins can reset member passwords. Keep at least two admin accounts: a locked-out sole admin can only be recovered through the database. A password reset performed by an admin revokes the affected user's existing sessions.
 
 ## Uptime tip
 

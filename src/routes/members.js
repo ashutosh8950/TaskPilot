@@ -11,6 +11,7 @@ router.use(authMW);
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const normalizeEmail = email => String(email || '').trim().toLowerCase();
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const generateTemporaryPassword = () => crypto.randomBytes(10).toString('hex');
 
 const mapUser = u => ({
   id: u.id, name: u.name, email: u.email,
@@ -48,7 +49,7 @@ router.post('/', adminOnly, async (req, res) => {
     const exists = await db.query('SELECT id FROM users WHERE email=$1', [cleanEmail]);
     if (exists.rows.length) return res.status(409).json({ error: 'Email already registered' });
 
-    const generatedPassword = !providedPassword ? crypto.randomBytes(10).toString('hex') : null;
+    const generatedPassword = !providedPassword ? generateTemporaryPassword() : null;
     const pwd = providedPassword || generatedPassword;
     if (typeof pwd !== 'string') return res.status(400).json({ error: 'Password must be a string' });
     if (pwd.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
@@ -66,6 +67,31 @@ router.post('/', adminOnly, async (req, res) => {
     if (generatedPassword) response.temporaryPassword = generatedPassword;
     return res.status(201).json(response);
   } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
+});
+
+// POST /api/members/:id/reset-password (admin resets a member password)
+router.post('/:id/reset-password', adminOnly, async (req, res) => {
+  if (req.params.id === req.user.id) {
+    return res.status(400).json({ error: 'Use change-password to reset your own password' });
+  }
+
+  try {
+    const temporaryPassword = generateTemporaryPassword();
+    const passwordHash = await bcrypt.hash(temporaryPassword, 10);
+    const result = await db.query(
+      `UPDATE users
+       SET password_hash=$1, token_version=token_version + 1
+       WHERE id=$2
+       RETURNING id`,
+      [passwordHash, req.params.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'User not found' });
+
+    await db.query('INSERT INTO activities (text) VALUES ($1)', [`${req.user.name} reset a password`]);
+    return res.json({ temporaryPassword });
+  } catch (e) {
+    return res.status(500).json({ error: 'Server error' });
+  }
 });
 
 // PUT /api/members/:id/role  (admin changes role)

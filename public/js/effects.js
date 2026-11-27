@@ -158,6 +158,7 @@
   function initTilt() {
     if (reducedMotion || !finePointer) return;
     document.addEventListener('pointermove', event => {
+      if (document.body.classList.contains('is-dragging')) return;
       const card = event.target.closest('.project-card, .stat-card, .task-card');
       if (!card) return;
       const rect = card.getBoundingClientRect();
@@ -187,6 +188,7 @@
     let active = true;
     let visible = true;
     let last = 0;
+    let canvasCleared = false;
     function resize() {
       const rect = canvas.parentElement.getBoundingClientRect();
       canvas.width = Math.max(1, rect.width);
@@ -202,7 +204,12 @@
       requestAnimationFrame(frame);
       const authVisible = document.getElementById('auth-screen')?.style.display !== 'none';
       const dashboardVisible = document.getElementById('page-dashboard')?.classList.contains('active');
-      if (!active || !visible || (!authVisible && !dashboardVisible) || time - last < 16) return;
+      if (!active || !visible || (!authVisible && !dashboardVisible)) {
+        if (!canvasCleared) { context.clearRect(0, 0, canvas.width, canvas.height); canvasCleared = true; }
+        return;
+      }
+      canvasCleared = false;
+      if (time - last < 16) return;
       last = time;
       context.clearRect(0, 0, canvas.width, canvas.height);
       for (let i = 0; i < particles.length; i += 1) {
